@@ -46,7 +46,7 @@ class ConsolePlayer(BasePokerPlayer):
         self._wait_until_input()
 
     def _wait_until_input(self):
-        raw_input("Enter some key to continue ...")
+        input("Enter some key to continue ...")
 
     # FIXME: This code would be crash if receives invalid input.
     #        So you should add error handling properly.
