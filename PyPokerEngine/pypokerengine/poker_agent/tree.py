@@ -2,13 +2,17 @@ from node import Node
 
 class Tree:
     def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k):
-        # bettings = (call_amount, raise_amount)
-        # money = (p1Money, p2Money, pot)
-        state = {
-            "position": position, "hand": hand, "river": river, "call_amount": call_amount, "raise_amount": raise_amount, 
-            "p1Money": p1Money, "p2Money": p2Money, "pot": pot, "round": round, "k": k, "owner": 1
-            }
-        self.root = Node(state)
+        self.position = position         # 0 = Big Blind, 1 = Small Blind
+        self.hand = hand                 # Hand of the player
+        self.river = river               # River Cards
+        self.CALL_AMOUNT = call_amount   # Amount to call
+        self.RAISE_AMOUNT = raise_amount # Raise Amount
+        self.p1 = p1Money                # Player 1 Money
+        self.p2 = p2Money                # Player 2 Money
+        self.pot = pot                   # Pot
+        self.round = round               # Round Number
+        self.k = k                       # Game Tree depth
+        self.root = Node(position, hand, river, (call_amount, raise_amount), (p1Money, p2Money, pot), round, k, owner=1)
 
 
     # Get the best action to take

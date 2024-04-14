@@ -1,8 +1,9 @@
-import numpy as np
+# import numpy as np
+from itertools import combinations
 
 class Node:
     def __init__(self, position, hand, river, betting_amount, player_money, round, k, owner, leaf=False, curr_level=0):
-        self.position = position                # Position of the Agent on table (0 or 1)
+        self.position = position                # If the agent is the First Player or Second Player (0 or 1)
         self.owner = owner                      # 1 = Poker Agent, 2 = Opposing Player, 3 = Nature
         self.hand = hand                        # Hand of the player
         self.river = river                      # River Cards
@@ -17,13 +18,24 @@ class Node:
         self.is_leaf = leaf                     # Is this a leaf node
         self.curr_level = curr_level            # Current level of the tree
 
+
     def get_actions(self) -> list:
         if self.is_leaf:
             return None
         
+        if self.owner == 1 and self.position == 0:
+            return self.action_helper_player(2, self.p1_money)
+        elif self.owner == 1 and self.position == 1:
+            return self.action_helper_player(3, self.p1_money)
+        elif self.owner == 2 and self.position == 0:
+            return self.action_helper_player(3, self.p2_money)
+        elif self.owner == 2 and self.position == 1:
+            return self.action_helper_player(1, self.p2_money)
+        elif self.owner == 3 and self.position == 0:
+            return self.action_helper_nature(1)
+        else:
+            return self.action_helper_nature(2)
         
-        return None
-
 
     def is_leaf(self) -> bool:
         return self.is_leaf
@@ -36,9 +48,9 @@ class Node:
     
     
     
-    def action_helper_player(self, next, money, k):
+    def action_helper_player(self, next, money):
        
-        is_k = k <= self.curr_level + 1
+        is_k = self.k <= self.curr_level + 1
         next_round = self.round + 1 if next == 3 else self.round
         moves = []
 
@@ -65,6 +77,62 @@ class Node:
                                     trash, self.round, self.k, next_round, leaf=is_k, curr_level=self.curr_level+1))
 
         return moves
+
+    
+    
+    def action_hepler_nature(self, next):
+        moves = []
+        is_k = self.k <= self.curr_level + 1
+        num_cards = 3 if self.round == 2 else 1
+
+        all_cards = ['C1', 'D1', 'H1', 'S1', 'C2', 'D2', 'H2', 'S2',
+                     'C3', 'D3', 'H3', 'S3', 'C4', 'D4', 'H4', 'S4',
+                     'C5', 'D5', 'H5', 'S5', 'C6', 'D6', 'H6', 'S6',
+                     'C7', 'D7', 'H7', 'S7', 'C8', 'D8', 'H8', 'S8',
+                     'C9', 'D9', 'H9', 'S9', 'CT', 'DT', 'HT', 'ST',
+                     'CJ', 'DJ', 'HJ', 'SJ', 'CQ', 'DQ', 'HQ', 'SQ',
+                     'CK', 'DK', 'HK', 'SK', 'CA', 'DA', 'HA', 'SA']
+
+
+        valid_combinations = combinations(
+                [card for card in all_cards if card not in self.hand and card not in self.river], num_cards)
+        
+        for branch in valid_combinations:
+            moves.append((-1, Node(self.position, self.hand, self.river + branch, self.betting_amount, 
+                                    [self.p1_money, self.p2_money, self.pot], self.round, self.k, next, leaf=is_k, curr_level=self.curr_level+1)))
+        
+        return moves
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
