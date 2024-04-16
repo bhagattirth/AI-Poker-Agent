@@ -12,29 +12,41 @@ class Tree:
         self.pot = pot                   # Pot
         self.round = round               # Round Number
         self.k = k                       # Game Tree depth
-        self.root = Node(position, hand, river, (call_amount, raise_amount), (p1Money, p2Money, pot), round, k, owner=1)
+        self.root = Node(position, hand, river, (call_amount, raise_amount), (p1Money, p2Money, pot), round, k, owner=1) # Current State
 
 
-    # Get the best action to take
+
     def pick_Action(self) -> int:
-        best_action = None # best action
-        best_utility = float("-inf") # best utility
+        """
+        Pick_action returns the best action for a given state based on the utility of the move
+        return: returns 0 for fold, 1 for call, 2 for raise
+        """ 
+
+        best_action = None                            # best action
+        best_utility = float("-inf")                  # best utility
         for action, state in self.root.get_actions(): # Pick the action with the highest Utility
-            utility = self.get_move_utility(state)
+            utility = self.get_move_utility(state)    # Get the utility of the move
             if utility > best_utility:
                 best_action = action
                 best_utility = utility
         return best_action
 
        
-    # Get the utility of the move using minmax (without alpha-beta pruning)
+
     def get_move_utility(self, state, level=1) -> float:
-        if state.is_leaf_node():
+        """
+        get_move_utility returns the utility of a action using minimax algorithm
+        :state: current state of the game
+        :level: current level of the game tree
+        return: returns the utility of the move
+        """
+
+        if state.is_leaf_node():    # If the state is a terminal node return the utility of the state
             return state.get_utility()         
-        utils = [self.get_move_utility(nState, level+1) for _, nState in state.get_actions()]
-        if state.owner == 3:
+        utils = [self.get_move_utility(nState, level+1) for _, nState in state.get_actions()] # Recursively get the utility of future moves
+        if state.owner == 3: # Minmax special case with nature
             return max(utils) if (level+1) & 1 == 0 else min(utils)
-        return max(utils) if level & 1 == 0 else min(utils)
+        return max(utils) if level & 1 == 0 else min(utils) # Minmax depending on owner of the node
 
         
         

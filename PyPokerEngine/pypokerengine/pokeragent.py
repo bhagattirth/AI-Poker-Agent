@@ -1,13 +1,14 @@
 from pypokerengine.players import BasePokerPlayer
 from pypokerengine.pokerAgent.tree import Tree
-import time
+from time import time
 
 class PokerAgent(BasePokerPlayer):
 
   def declare_action(self, valid_actions, hole_card, round_state):
-    start = time.time()
-    position = 0 if round_state["next_player"] == round_state["small_blind_pos"] else 1
-    street = round_state["street"]
+    print("start")
+    start = time()
+    position = 0 if round_state["next_player"] == round_state["small_blind_pos"] else 1 # 0 = SB, 1 = BB
+    street = round_state["street"]  # Name of the round
     if street == "preflop":
       round = 1
     elif street == "flop":
@@ -17,24 +18,26 @@ class PokerAgent(BasePokerPlayer):
     elif street == "river":
       round = 4
     
-    community_card = round_state["community_card"]
-    p1_money = round_state["seats"][round_state["next_player"]]["stack"]
-    p2_money = round_state["seats"][1 if round_state["next_player"] == 0 else 0]["stack"]
-    pot = round_state["pot"]["main"]["amount"]
-    last_move = round_state["action_histories"][street][-1]
-    call_amount = last_move["paid"] if "paid" in last_move else last_move["add_amount"]
-    raise_amount = 10 + call_amount
-    k = 3
+    community_card = round_state["community_card"]                                        # River Cards
+    p1_money = round_state["seats"][round_state["next_player"]]["stack"]                  # PokerAgent Money
+    p2_money = round_state["seats"][1 if round_state["next_player"] == 0 else 0]["stack"] # Opponent Money
+    pot = round_state["pot"]["main"]["amount"]                                            # Pot Amount
+    call_amount = valid_actions[1]["amount"]                                              # Call Amount
+    raise_amount = 10 + call_amount                                                       # Raise Amount                       
+    k = 5                                                                                 # Depth Limit
+
 
     tree = Tree(position, hole_card, community_card, call_amount, raise_amount, p1_money, p2_money, pot, round, k)
-    action = tree.pick_Action()
+    action = tree.pick_Action() # Returns "Optimal" move: 0 = Fold, 1 = Call, 2 = Raise
     move = valid_actions[action]
 
-    if action == 2:
+
+    end = time()
+    print("Time taken: ", end - start)
+
+    if action == 2: # Raise
       return move["action"], raise_amount
     
-    end = time.time()
-    print("Time taken: ", end - start)
     return move["action"], move["amount"]
 
   def receive_game_start_message(self, game_info):
