@@ -8,9 +8,9 @@ config = setup_config(max_round=10, initial_stack=1000, small_blind_amount=10)
 
 
 
-config.register_player(name="f1", algorithm=FishPlayer())
+config.register_player(name="fish", algorithm=FishPlayer())
 # config.register_player(name="FT2", algorithm=HonestPlayer())
-config.register_player(name="FT3", algorithm=PokerAgent())
+config.register_player(name="PokerMan", algorithm=PokerAgent())
 
 
 game_result = start_poker(config, verbose=1)

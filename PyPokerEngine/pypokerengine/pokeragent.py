@@ -2,12 +2,12 @@ from pypokerengine.players import BasePokerPlayer
 from pypokerengine.pokerAgent.tree import Tree
 from time import time
 
-class PokerAgent(BasePokerPlayer):
+stats = []
 
+class PokerAgent(BasePokerPlayer):    
   def declare_action(self, valid_actions, hole_card, round_state):
-    print("start")
     start = time()
-    position = 0 if round_state["next_player"] == round_state["small_blind_pos"] else 1 # 0 = SB, 1 = BB
+    position = 0 if round_state["next_player"] == round_state["small_blind_pos"] else 1 # 0 = Small Blind, 1 = Big Blind
     street = round_state["street"]  # Name of the round
     if street == "preflop":
       round = 1
@@ -24,7 +24,7 @@ class PokerAgent(BasePokerPlayer):
     pot = round_state["pot"]["main"]["amount"]                                            # Pot Amount
     call_amount = valid_actions[1]["amount"]                                              # Call Amount
     raise_amount = 10 + call_amount                                                       # Raise Amount                       
-    k = 5                                                                                 # Depth Limit
+    k = 3                                                                                 # Depth Limit
 
 
     tree = Tree(position, hole_card, community_card, call_amount, raise_amount, p1_money, p2_money, pot, round, k)
@@ -34,6 +34,10 @@ class PokerAgent(BasePokerPlayer):
 
     end = time()
     print("Time taken: ", end - start)
+    
+    ## REMOVE THE BELOW BLOCK
+    stats[-1]['time_taken'].append(end - start)
+    stats[-1]['decisions'].append(move["action"])
 
     if action == 2: # Raise
       return move["action"], raise_amount
@@ -44,7 +48,13 @@ class PokerAgent(BasePokerPlayer):
     pass
 
   def receive_round_start_message(self, round_count, hole_card, seats):
-    pass
+    stats.append({
+      'time_taken': [],
+      'decisions': [],
+      'winnings': []
+    })
+    print('\n--[Round]--\n')
+    print("Cards in hand: ", hole_card)
 
   def receive_street_start_message(self, street, round_state):
     pass
@@ -53,7 +63,9 @@ class PokerAgent(BasePokerPlayer):
     pass
 
   def receive_round_result_message(self, winners, hand_info, round_state):
-    pass
+    stats[-1]['winnings'].append(round_state['pot']['main']['amount'])
+    print("Stats: ", stats[-1])
+    print(round_state['action_histories'])
 
 # def setup_ai():
 #   return RandomPlayer()

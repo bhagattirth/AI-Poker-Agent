@@ -37,9 +37,9 @@ class Node:
         elif self.owner == 2 and self.position == 1:            # If the opponent plays second
             return self.action_helper_player(1, self.p2_money)
         elif self.owner == 3 and self.position == 0:            # Natures Turn and next player is the pokeragent
-            return self.action_helper_nature(1)
+            return self.action_helper_nature(2)
         else:
-            return self.action_helper_nature(2)                 # Natures Turn and next player is the opponent
+            return self.action_helper_nature(1)                 # Natures Turn and next player is the opponent
         
 
     def is_leaf_node(self) -> bool: 
@@ -110,7 +110,7 @@ class Node:
         :next: next player
         return: returns a list of states from valid actions
         """
-
+        self.owner = 1 if self.position == 0 else 2
         is_k = self.k <= self.curr_level + 1    # Checks if the depth limit is reached
         num_cards = 3 if self.round == 2 else 1 # Number of cards to show on the river
 

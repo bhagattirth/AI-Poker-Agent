@@ -44,8 +44,6 @@ class Tree:
         if state.is_leaf_node():    # If the state is a terminal node return the utility of the state
             return state.get_utility()         
         utils = [self.get_move_utility(nState, level+1) for _, nState in state.get_actions()] # Recursively get the utility of future moves
-        if state.owner == 3: # Minmax special case with nature
-            return max(utils) if (level+1) & 1 == 0 else min(utils)
         return max(utils) if level & 1 == 0 else min(utils) # Minmax depending on owner of the node
 
         
