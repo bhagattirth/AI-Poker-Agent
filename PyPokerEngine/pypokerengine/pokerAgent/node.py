@@ -57,9 +57,16 @@ class Node:
         get_utility returns the utility of the current node
         return: returns the current pot (temporary)
         """
+        # TODO: Add preflop handler
+        # TODO: Account for bluffing
+        # TODO: Account past results
+        # TODO: Account for p1 expected hand strength
+        # TODO: Account for p2 predicted expected hand strength
+        p1_bet_amount = sum([play[2] for play in self.action_history if play[0] == 1])
+        p2_bet_amount = sum([play[2] for play in self.action_history if play[0] == 2])
         if self.is_leaf:
-            return self.pot * (-1 if self.owner == 1 else 1)
-        return None
+            return -1*p1_bet_amount if self.owner == 1 else self.pot
+        return -1*p1_bet_amount if self.owner == 1 else self.pot # TODO: Fix this!
     
     
     
