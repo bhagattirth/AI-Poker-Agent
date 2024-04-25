@@ -1,18 +1,19 @@
 from pypokerengine.pokerAgent.node import Node
 
 class Tree:
-    def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k):
-        self.position = position         # 0 = Big Blind, 1 = Small Blind
-        self.hand = hand                 # Hand of the player
-        self.river = river               # River Cards
-        self.CALL_AMOUNT = call_amount   # Amount to call
-        self.RAISE_AMOUNT = raise_amount # Raise Amount
-        self.p1 = p1Money                # Player 1 Money
-        self.p2 = p2Money                # Player 2 Money
-        self.pot = pot                   # Pot
-        self.round = round               # Round Number
-        self.k = k                       # Game Tree depth
-        self.root = Node(position, hand, river, (call_amount, raise_amount), (p1Money, p2Money, pot), round, k, owner=1) # Current State
+    def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history):
+        self.position = position                # 0 = Big Blind, 1 = Small Blind
+        self.hand = hand                        # Hand of the player
+        self.river = river                      # River Cards
+        self.CALL_AMOUNT = call_amount          # Amount to call
+        self.RAISE_AMOUNT = raise_amount        # Raise Amount
+        self.p1 = p1Money                       # Player 1 Money
+        self.p2 = p2Money                       # Player 2 Money
+        self.pot = pot                          # Pot
+        self.round = round                      # Round Number
+        self.k = k                              # Game Tree depth
+        self.action_history = action_history    # action history
+        self.root = Node(position, hand, river, (call_amount, raise_amount), (p1Money, p2Money, pot), round, k, action_history, owner=1) # Current State
 
 
 

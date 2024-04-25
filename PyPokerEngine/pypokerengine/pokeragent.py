@@ -19,15 +19,23 @@ class PokerAgent(BasePokerPlayer):
       round = 4
     
     community_card = round_state["community_card"]                                        # River Cards
-    p1_money = round_state["seats"][round_state["next_player"]]["stack"]                  # PokerAgent Money
-    p2_money = round_state["seats"][1 if round_state["next_player"] == 0 else 0]["stack"] # Opponent Money
+    p1_info = round_state["seats"][round_state["next_player"]]
+    p2_info = round_state["seats"][1 if round_state["next_player"] == 0 else 0]
+    p1_money = p1_info["stack"]                                      # PokerAgent Money
+    p2_money = p2_info["stack"]                                      # Opponent Money
     pot = round_state["pot"]["main"]["amount"]                                            # Pot Amount
     call_amount = valid_actions[1]["amount"]                                              # Call Amount
     raise_amount = 10 + call_amount                                                       # Raise Amount                       
     k = 3                                                                                 # Depth Limit
+    action_history = [(
+          1 if item['uuid'] == p1_info['uuid'] else 2, 
+          item['action'], 
+          item['paid'] if 'paid' in item else item['add_amount']
+      ) for (k,v) in round_state['action_histories'].items() for item in v]               # Action History
+    print(f"Play so far (player, move, amount added) => {action_history}")
 
 
-    tree = Tree(position, hole_card, community_card, call_amount, raise_amount, p1_money, p2_money, pot, round, k)
+    tree = Tree(position, hole_card, community_card, call_amount, raise_amount, p1_money, p2_money, pot, round, k, action_history)
     action = tree.pick_Action() # Returns "Optimal" move: 0 = Fold, 1 = Call, 2 = Raise
     move = valid_actions[action]
 
