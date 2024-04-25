@@ -59,21 +59,23 @@ class PokerAgent(BasePokerPlayer):
     stats.append({
       'time_taken': [],
       'decisions': [],
-      'winnings': []
+      'winnings': None
     })
-    print('\n--[Round]--\n')
+    print('\n\n-+-+-[Round]-+-+-\n')
     print("Cards in hand: ", hole_card)
 
   def receive_street_start_message(self, street, round_state):
+    print(f'\n--[{street}]--')
     pass
 
   def receive_game_update_message(self, action, round_state):
     pass
 
   def receive_round_result_message(self, winners, hand_info, round_state):
-    stats[-1]['winnings'].append(round_state['pot']['main']['amount'])
-    print("Stats: ", stats[-1])
-    print(round_state['action_histories'])
+    stats[-1]['winnings'] = round_state['pot']['main']['amount'] * -1 if winners[0]['name'] != 'PokerMan' else 1
+    print("\nStats: ", stats[-1])
+    winnings = [round_stat['winnings'] for round_stat in stats]
+    print(f"We've earned ${round_state['seats'][0 if round_state['next_player'] == 1 else 1]['stack'] - 1000} so far!\nWon {len([i for i in winnings if i > 0])}/{len(winnings)} rounds (Winning rate: {100*len([i for i in winnings if i > 0])/len(winnings)}%)")
 
 # def setup_ai():
 #   return RandomPlayer()
