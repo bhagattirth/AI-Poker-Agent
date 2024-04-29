@@ -35,9 +35,9 @@ class Node:
 
         if self.is_leaf: # There are no actions at a termimal node
             return None
-        
+
         if self.owner == 1 and self.position == 0:              # If the pokeragent plays first
-            return self.action_helper_player(2, self.p1_money)  
+            return self.action_helper_player(2, self.p1_money)
         elif self.owner == 1 and self.position == 1:            # If the pokeragent plays second
             return self.action_helper_player(3, self.p1_money)
         elif self.owner == 2 and self.position == 0:            # If the opponent plays first
@@ -52,15 +52,15 @@ class Node:
             return self.action_helper_nature(2)
         else:
             return self.action_helper_nature(1)                 # Natures Turn and next player is the opponent
-        
 
-    def is_leaf_node(self) -> bool: 
+
+    def is_leaf_node(self) -> bool:
         """
         is_leaf_node returns if the current node is a leaf node
         return: returns a boolean value
         """
         return self.is_leaf
-    
+
 
     def get_utility(self, is_preflop=False) -> float:
         """
@@ -77,11 +77,11 @@ class Node:
         # If they fold, we will win the pot.
         if self.owner == 2 and self.action == 'FOLD':
             return self.pot
-        
+
         # If nature controlled node, report max possible winnings
         if self.owner == 3:
             return self.pot
-        
+
         # If preflop, expect to win the hand
         if is_preflop:
             return self.pot
@@ -97,12 +97,12 @@ class Node:
         # If we feel that our hand is weaker, we expect to lose all that we've bet so far.
         if feels_like_a_weaker_hand:
             return -1*p1_bet_amount
-        
+
         # In all other cases, we expect to win the pot
         return self.pot
-    
-    
-    
+
+
+
     def action_helper_player(self, next, money):
         """
         action_helper_player returns valid states for the player
@@ -118,20 +118,20 @@ class Node:
 
         # Fold State
         moves.append((0, Node(
-            position=self.position, 
-            hand=self.hand, 
-            river=self.river, 
-            betting_amount=self.betting_amount, 
-            player_money=[self.p1_money, self.p2_money, self.pot], 
-            round=next_round, 
-            k=self.k, 
+            position=self.position,
+            hand=self.hand,
+            river=self.river,
+            betting_amount=self.betting_amount,
+            player_money=[self.p1_money, self.p2_money, self.pot],
+            round=next_round,
+            k=self.k,
             action_history=[*self.action_history, (self.owner, 'FOLD', 0.0)],
-            owner=self.owner, 
-            leaf=True, 
-            curr_level=self.curr_level+1, 
+            owner=self.owner,
+            leaf=True,
+            curr_level=self.curr_level+1,
             action='FOLD'
         )))
-        
+
         # Call State
         if  money >= self.call_amount:
             # Update the money of the player after calling
@@ -140,46 +140,46 @@ class Node:
             new_amounts = (0, 10) # Update the betting amounts
 
             moves.append((1, Node(
-                position=self.position, 
-                hand=self.hand, 
-                river=self.river, 
+                position=self.position,
+                hand=self.hand,
+                river=self.river,
                 betting_amount=new_amounts,
-                player_money=[d1, d2, self.pot + self.call_amount], 
+                player_money=[d1, d2, self.pot + self.call_amount],
                 round=next_round,
                 k=self.k,
                 action_history=[*self.action_history, (self.owner, 'CALL', self.call_amount)],
-                owner=next, 
-                leaf=is_k, 
-                curr_level=self.curr_level+1, 
+                owner=next,
+                leaf=is_k,
+                curr_level=self.curr_level+1,
                 action='CALL'
             )))
-        
+
         # Raise State
         if  money >= self.raise_amount :
             # Update the money of the player after raising
             d1 = self.p1_money - self.raise_amount  if self.owner == 1 else self.p1_money
             d2 = self.p2_money - self.raise_amount if self.owner == 2 else self.p2_money
-            
+
             new_amounts = (10, 20) #updating the betting amounts
             moves.append((2, Node(
-                position=self.position, 
-                hand=self.hand, 
-                river=self.river, 
+                position=self.position,
+                hand=self.hand,
+                river=self.river,
                 betting_amount=new_amounts,
-                player_money=[d1, d2, self.pot + self.raise_amount], 
+                player_money=[d1, d2, self.pot + self.raise_amount],
                 round=next_round,
-                k=self.k, 
+                k=self.k,
                 action_history=[*self.action_history, (self.owner, 'RAISE', self.raise_amount)],
-                owner=next, 
-                leaf=is_k, 
-                curr_level=self.curr_level+1, 
+                owner=next,
+                leaf=is_k,
+                curr_level=self.curr_level+1,
                 action='RAISE'
             )))
 
         return moves
 
-    
-    
+
+
     def action_helper_nature(self, next):
         """
         action_helper_nature returns valid states for nature
@@ -190,12 +190,12 @@ class Node:
         is_k = self.k <= self.curr_level + 1    # Checks if the depth limit is reached
         num_cards = 3 if self.round == 2 else 1 # Number of cards to show on the river
 
-        all_cards = ['C2', 'D2', 'H2', 'S2', 'C3', 'D3', 'H3', 'S3', 
-                     'C4', 'D4', 'H4', 'S4', 'C5', 'D5', 'H5', 'S5', 
+        all_cards = ['C2', 'D2', 'H2', 'S2', 'C3', 'D3', 'H3', 'S3',
+                     'C4', 'D4', 'H4', 'S4', 'C5', 'D5', 'H5', 'S5',
                      'C6', 'D6', 'H6', 'S6', 'C7', 'D7', 'H7', 'S7',
-                     'C8', 'D8', 'H8', 'S8', 'C9', 'D9', 'H9', 'S9', 
+                     'C8', 'D8', 'H8', 'S8', 'C9', 'D9', 'H9', 'S9',
                      'CT', 'DT', 'HT', 'ST', 'CJ', 'DJ', 'HJ', 'SJ',
-                     'CQ', 'DQ', 'HQ', 'SQ', 'CK', 'DK', 'HK', 'SK', 
+                     'CQ', 'DQ', 'HQ', 'SQ', 'CK', 'DK', 'HK', 'SK',
                      'CA', 'DA', 'HA', 'SA']
 
         remaining_cards = [card for card in all_cards if card not in self.hand and card not in self.river] # Remaining cards that are not on hand or river
@@ -204,32 +204,32 @@ class Node:
         if num_cards == 3:
             valid_combinations = list(combinations(remaining_cards, num_cards))
             moves = [(-1, Node(
-                position=self.position, 
-                hand=self.hand, 
-                river=list(branch), 
+                position=self.position,
+                hand=self.hand,
+                river=list(branch),
                 betting_amount=self.betting_amount,
-                player_money=[self.p1_money, self.p2_money, self.pot], 
+                player_money=[self.p1_money, self.p2_money, self.pot],
                 round=self.round,
-                k=self.k, 
+                k=self.k,
                 action_history=[*self.action_history],
-                owner=next, 
-                leaf=is_k, 
+                owner=next,
+                leaf=is_k,
                 curr_level=self.curr_level+1,
                 action='NATURE'
             )) for branch in valid_combinations]
 
         else:
             moves = [(-1, Node(
-                position=self.position, 
-                hand=self.hand, 
+                position=self.position,
+                hand=self.hand,
                 river=self.river + [card],
                 betting_amount=self.betting_amount,
-                player_money=[self.p1_money, self.p2_money, self.pot], 
+                player_money=[self.p1_money, self.p2_money, self.pot],
                 round=self.round,
-                k=self.k, 
+                k=self.k,
                 action_history=[*self.action_history],
-                owner=next, 
-                leaf=is_k, 
+                owner=next,
+                leaf=is_k,
                 curr_level=self.curr_level+1,
                 action='NATURE'
             )) for card in remaining_cards]
