@@ -2,6 +2,11 @@
 from itertools import combinations
 import random
 
+def calculate_hand_strength(hand, river):
+    # Given hand cards ('hand', 2 cards) and community cards ('river', up to 5 cards)
+    # Determine the holder's hand strength
+    return random.random() # TODO: IMPLEMENT ME
+
 class Node:
     def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history, owner, action, leaf=False, curr_level=0):
         self.position = position                # If the agent is the First Player or Second Player (0 or 1)
@@ -62,10 +67,6 @@ class Node:
         get_utility returns the utility of the current node
         return: returns the current pot (temporary)
         """
-        # TODO: Account for bluffing
-        # TODO: Account past results
-        # TODO: Account for p1 expected hand strength
-        # TODO: Account for p2 predicted expected hand strength
         p1_bet_amount = sum([play[2] for play in self.action_history if play[0] == 1])
         p2_bet_amount = sum([play[2] for play in self.action_history if play[0] == 2])
 
@@ -74,15 +75,27 @@ class Node:
             return -1*p1_bet_amount
 
         # If they fold, we will win the pot.
-        if self.owner != 1 and self.action == 'FOLD':
+        if self.owner == 2 and self.action == 'FOLD':
+            return self.pot
+        
+        # If nature controlled node, report max possible winnings
+        if self.owner == 3:
             return self.pot
         
         # If preflop, expect to win the hand
         if is_preflop:
             return self.pot
 
+        hand_strength = calculate_hand_strength(self.hand, self.river) # Note: hand will always be our (player 1's) cards
+
+        # TODO: Account for p2 predicted expected hand strength
+        # TODO: Account for bluffing
+        # TODO: Account for aggression
+        # TODO: Account for past results
+        feels_like_a_weaker_hand = hand_strength < 0.5
+
         # If we feel that our hand is weaker, we expect to lose all that we've bet so far.
-        if random.random() > 0.5:
+        if feels_like_a_weaker_hand:
             return -1*p1_bet_amount
         
         # In all other cases, we expect to win the pot
