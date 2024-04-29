@@ -1,4 +1,4 @@
-from pokerAgent.node import Node
+from .node import Node
 
 class Tree:
     def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history):
