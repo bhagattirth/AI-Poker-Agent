@@ -32,7 +32,6 @@ class PokerAgent(BasePokerPlayer):
           item['action'], 
           item['paid'] if 'paid' in item else item['add_amount']
       ) for (k,v) in round_state['action_histories'].items() for item in v]               # Action History
-    print(f"Play so far (player, move, amount added) => {action_history}")
 
 
     tree = Tree(position, hole_card, community_card, call_amount, raise_amount, p1_money, p2_money, pot, round, k, action_history)
@@ -59,23 +58,25 @@ class PokerAgent(BasePokerPlayer):
     stats.append({
       'time_taken': [],
       'decisions': [],
-      'winnings': None
+      'outcome': None
     })
     print('\n\n-+-+-[Round]-+-+-\n')
     print("Cards in hand: ", hole_card)
 
   def receive_street_start_message(self, street, round_state):
     print(f'\n--[{street}]--')
-    pass
 
   def receive_game_update_message(self, action, round_state):
     pass
 
   def receive_round_result_message(self, winners, hand_info, round_state):
-    stats[-1]['winnings'] = round_state['pot']['main']['amount'] * -1 if winners[0]['name'] != 'PokerMan' else 1
-    print("\nStats: ", stats[-1])
-    winnings = [round_stat['winnings'] for round_stat in stats]
-    print(f"We've earned ${round_state['seats'][0 if round_state['next_player'] == 1 else 1]['stack'] - 1000} so far!\nWon {len([i for i in winnings if i > 0])}/{len(winnings)} rounds (Winning rate: {100*len([i for i in winnings if i > 0])/len(winnings)}%)")
+    stats[-1]['outcome'] = winners[0]['name'] == 'PokerMan'
 
-# def setup_ai():
-#   return RandomPlayer()
+    action_history = [(
+          1 if item['uuid'] == round_state["seats"][round_state["next_player"]]['uuid'] else 2, 
+          item['action'], 
+          item['paid'] if 'paid' in item else item['add_amount'] if 'add_amount' in item else 0.0
+      ) for (k,v) in round_state['action_histories'].items() for item in v]
+    outcomes = [stat['outcome'] for stat in stats]
+    print(f"\n\nPlay this round (player, move, amount added) => {action_history}")
+    print(f"We've earned ${round_state['seats'][1 if round_state['next_player'] == 0 else 1]['stack'] - 1000} so far!\nWon {sum(outcomes)}/{len(outcomes)} rounds (Winning rate: {100*sum(outcomes)/len(outcomes)}%)")

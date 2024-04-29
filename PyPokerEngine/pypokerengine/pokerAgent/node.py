@@ -1,8 +1,9 @@
 # import numpy as np
 from itertools import combinations
+import random
 
 class Node:
-    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history, owner, leaf=False, curr_level=0):
+    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history, owner, action, leaf=False, curr_level=0):
         self.position = position                # If the agent is the First Player or Second Player (0 or 1)
         self.owner = owner                      # 1 = Poker Agent, 2 = Opposing Player, 3 = Nature
         self.hand = hand                        # Hand of the Agent
@@ -18,6 +19,7 @@ class Node:
         self.is_leaf = leaf                     # Is this a leaf node
         self.curr_level = curr_level            # Current level of the tree
         self.action_history = action_history    # Action History
+        self.action = action                    # Action which led to this node {'CALL', 'RAISE', 'FOLD', 'NATURE', 'SMALLBLIND', 'BIGBLIND'}
 
 
     def get_actions(self) -> list:
@@ -64,9 +66,21 @@ class Node:
         # TODO: Account for p2 predicted expected hand strength
         p1_bet_amount = sum([play[2] for play in self.action_history if play[0] == 1])
         p2_bet_amount = sum([play[2] for play in self.action_history if play[0] == 2])
-        if self.is_leaf:
-            return -1*p1_bet_amount if self.owner == 1 else self.pot
-        return -1*p1_bet_amount if self.owner == 1 else self.pot # TODO: Fix this!
+
+        # 1] If we fold, we will lose all that we've bet.
+        if self.owner == 1 and self.action == 'FOLD':
+            return -1*p1_bet_amount
+
+        # 2] If they fold, we will win the pot.
+        if self.owner != 1 and self.action == 'FOLD':
+            return self.pot
+
+        # 3] If we feel that our hand is weaker, we expect to lose all that we've bet so far.
+        if random.random() > 0.5:
+            return -1*p1_bet_amount
+        
+        # 4] In all other cases, we expect to win the pot
+        return self.pot
     
     
     
@@ -96,6 +110,7 @@ class Node:
             owner=self.owner, 
             leaf=True, 
             curr_level=self.curr_level+1, 
+            action='FOLD'
         )))
         
         # Call State
@@ -112,11 +127,12 @@ class Node:
                 betting_amount=new_amounts,
                 player_money=[d1, d2, self.pot + self.call_amount], 
                 round=next_round,
-                k=self.k, 
+                k=self.k,
                 action_history=[*self.action_history, (self.owner, 'CALL', self.call_amount)],
                 owner=next, 
                 leaf=is_k, 
                 curr_level=self.curr_level+1, 
+                action='CALL'
             )))
         
         # Raise State
@@ -138,6 +154,7 @@ class Node:
                 owner=next, 
                 leaf=is_k, 
                 curr_level=self.curr_level+1, 
+                action='RAISE'
             )))
 
         return moves
@@ -179,6 +196,7 @@ class Node:
                 owner=next, 
                 leaf=is_k, 
                 curr_level=self.curr_level+1,
+                action='NATURE'
             )) for branch in valid_combinations]
 
         else:
@@ -194,6 +212,7 @@ class Node:
                 owner=next, 
                 leaf=is_k, 
                 curr_level=self.curr_level+1,
+                action='NATURE'
             )) for card in remaining_cards]
 
         return moves
