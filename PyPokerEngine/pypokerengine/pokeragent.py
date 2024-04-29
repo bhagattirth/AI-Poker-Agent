@@ -1,5 +1,5 @@
 from pypokerengine.players import BasePokerPlayer
-from pypokerengine.pokerAgent.tree import Tree
+from pokerAgent.tree import Tree
 from time import time
 
 stats = []
