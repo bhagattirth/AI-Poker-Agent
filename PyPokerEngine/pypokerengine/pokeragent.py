@@ -25,7 +25,7 @@ class PokerAgent(BasePokerPlayer):
     p2_money = p2_info["stack"]                                      # Opponent Money
     pot = round_state["pot"]["main"]["amount"]                                            # Pot Amount
     call_amount = valid_actions[1]["amount"]                                              # Call Amount
-    raise_amount = 10 + call_amount                                                       # Raise Amount                       
+    raise_amount = valid_actions[2]["amount"]["min"]                                      # Raise Amount                       
     k = 3                                                                                 # Depth Limit
     action_history = [(
           1 if item['uuid'] == p1_info['uuid'] else 2, 

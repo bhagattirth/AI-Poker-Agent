@@ -37,7 +37,7 @@ class Tree:
     def get_move_utility(self, state, level=1) -> float:
         """
         get_move_utility returns the utility of a action using minimax algorithm
-        :state: current state of the game
+        :state: current state of the game (a Node)
         :level: current level of the game tree
         return: returns the utility of the move
         """
