@@ -41,10 +41,17 @@ class Tree:
         :level: current level of the game tree
         return: returns the utility of the move
         """
+        is_preflop = self.round == 1
 
         if state.is_leaf_node():    # If the state is a terminal node return the utility of the state
-            return state.get_utility()         
-        utils = [self.get_move_utility(nState, level+1) for _, nState in state.get_actions()] # Recursively get the utility of future moves
+            return state.get_utility(is_preflop=is_preflop)         
+
+        actions = state.get_actions(is_preflop=is_preflop)
+
+        if not actions:
+            return state.get_utility(is_preflop=is_preflop)
+
+        utils = [self.get_move_utility(nState, level+1) for _, nState in actions] # Recursively get the utility of future moves
         return max(utils) if level & 1 == 0 else min(utils) # Minmax depending on owner of the node
 
         

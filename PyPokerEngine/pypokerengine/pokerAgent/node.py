@@ -22,14 +22,13 @@ class Node:
         self.action = action                    # Action which led to this node {'CALL', 'RAISE', 'FOLD', 'NATURE', 'SMALLBLIND', 'BIGBLIND'}
 
 
-    def get_actions(self) -> list:
+    def get_actions(self, is_preflop=False) -> list:
         """
         get_actions returns the possible actions the player can take
         return: returns a list of states from valid actions
         """
 
         if self.is_leaf: # There are no actions at a termimal node
-            print(self.action_history)
             return None
         
         if self.owner == 1 and self.position == 0:              # If the pokeragent plays first
@@ -40,7 +39,11 @@ class Node:
             return self.action_helper_player(3, self.p2_money)
         elif self.owner == 2 and self.position == 1:            # If the opponent plays second
             return self.action_helper_player(1, self.p2_money)
-        elif self.owner == 3 and self.position == 0:            # Natures Turn and next player is the pokeragent
+
+        if is_preflop:
+            return None
+
+        if self.owner == 3 and self.position == 0:            # Natures Turn and next player is the pokeragent
             return self.action_helper_nature(2)
         else:
             return self.action_helper_nature(1)                 # Natures Turn and next player is the opponent
@@ -54,12 +57,11 @@ class Node:
         return self.is_leaf
     
 
-    def get_utility(self) -> float:
+    def get_utility(self, is_preflop=False) -> float:
         """
         get_utility returns the utility of the current node
         return: returns the current pot (temporary)
         """
-        # TODO: Add preflop handler
         # TODO: Account for bluffing
         # TODO: Account past results
         # TODO: Account for p1 expected hand strength
@@ -67,19 +69,23 @@ class Node:
         p1_bet_amount = sum([play[2] for play in self.action_history if play[0] == 1])
         p2_bet_amount = sum([play[2] for play in self.action_history if play[0] == 2])
 
-        # 1] If we fold, we will lose all that we've bet.
+        # If we fold, we will lose all that we've bet.
         if self.owner == 1 and self.action == 'FOLD':
             return -1*p1_bet_amount
 
-        # 2] If they fold, we will win the pot.
+        # If they fold, we will win the pot.
         if self.owner != 1 and self.action == 'FOLD':
             return self.pot
+        
+        # If preflop, expect to win the hand
+        if is_preflop:
+            return self.pot
 
-        # 3] If we feel that our hand is weaker, we expect to lose all that we've bet so far.
+        # If we feel that our hand is weaker, we expect to lose all that we've bet so far.
         if random.random() > 0.5:
             return -1*p1_bet_amount
         
-        # 4] In all other cases, we expect to win the pot
+        # In all other cases, we expect to win the pot
         return self.pot
     
     

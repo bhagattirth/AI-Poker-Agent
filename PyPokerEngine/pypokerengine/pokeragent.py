@@ -34,7 +34,19 @@ class PokerAgent(BasePokerPlayer):
       ) for (k,v) in round_state['action_histories'].items() for item in v]               # Action History
 
 
-    tree = Tree(position, hole_card, community_card, call_amount, raise_amount, p1_money, p2_money, pot, round, k, action_history)
+    tree = Tree(
+      position=position, 
+      hand=hole_card, 
+      river=community_card, 
+      call_amount=call_amount, 
+      raise_amount=raise_amount, 
+      p1Money=p1_money, 
+      p2Money=p2_money, 
+      pot=pot, 
+      round=round, 
+      k=k, 
+      action_history=action_history,
+    )
     action = tree.pick_Action() # Returns "Optimal" move: 0 = Fold, 1 = Call, 2 = Raise
     move = valid_actions[action]
 
