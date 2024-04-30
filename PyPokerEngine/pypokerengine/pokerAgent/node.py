@@ -72,7 +72,7 @@ class Node:
 
         # If we fold, we will lose all that we've bet.
         if self.owner == 1 and self.action == 'FOLD':
-            return -1*p1_bet_amount
+            return -1 * p1_bet_amount
 
         # If they fold, we will win the pot.
         if self.owner == 2 and self.action == 'FOLD':
@@ -96,12 +96,25 @@ class Node:
 
         # If we feel that our hand is weaker, we expect to lose all that we've bet so far.
         if feels_like_a_weaker_hand:
-            return -1*p1_bet_amount
+            return -1 * p1_bet_amount
 
         # In all other cases, we expect to win the pot
         return self.pot
 
-
+    def calculate_bluff_probability(self):
+        """
+        calculate_bluff_probability returns the probability of the opponent bluffing throughout the game
+        return: returns the value of opp_bluff_prob 
+        """
+        opp_bluff_prob = 0
+        hand_strength = calculate_hand_strength(self.hand, self.river)
+        pred_p2_hand_strength = 0 # TODO: account for p2 predicted expected hand strength; i believe abstraction will be needed in this step.
+        if self.p1_money < self.p2_money:
+            opp_bluff_prob += 0.1
+        if hand_strength < pred_p2_hand_strength:
+            opp_bluff_prob += 0.1
+        # TODO: based on action history, we need to account how aggressively the opponent bets. account for aggression and past results.
+        return opp_bluff_prob
 
     def action_helper_player(self, next, money):
         """
