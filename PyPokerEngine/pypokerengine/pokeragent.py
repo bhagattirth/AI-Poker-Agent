@@ -1,6 +1,7 @@
 from pypokerengine.players import BasePokerPlayer
 from .pokerAgent.tree import Tree
 from time import time
+from .pokerAgent.abstraction import Abstraction
 
 stats = []
 
@@ -32,7 +33,10 @@ class PokerAgent(BasePokerPlayer):
           item['action'],
           item['paid'] if 'paid' in item else item['add_amount']
       ) for (k,v) in round_state['action_histories'].items() for item in v]               # Action History
-
+    
+    # TPT_zip=Abstraction.tpt_table()
+    TPT_zip=[]
+    print("Table fetched, Time taken: ", time() - start)
 
     tree = Tree(
       position=position,
@@ -46,6 +50,7 @@ class PokerAgent(BasePokerPlayer):
       round=round,
       k=k,
       action_history=action_history,
+      TPT=TPT_zip
     )
     action = tree.pick_Action() # Returns "Optimal" move: 0 = Fold, 1 = Call, 2 = Raise
     move = valid_actions[action]

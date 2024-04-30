@@ -1,14 +1,116 @@
 # import numpy as np
 from itertools import combinations
 import random
+import time
+from phevaluator.evaluator import evaluate_cards
 
-def calculate_hand_strength(hand, river):
+def calculate_hand_strength(HR_zip, hand, river):
     # Given hand cards ('hand', 2 cards) and community cards ('river', up to 5 cards)
     # Determine the holder's hand strength
-    return random.random() # TODO: IMPLEMENT ME
+    value=0
+    variance=0
+    # cards_remaining = list(range(1,52))
+    # tpt_0=lookup_value(hand[0][::-1])
+    # tpt_1=lookup_value(hand[1][::-1])
+    # cards_remaining.remove(tpt_0)
+    # cards_remaining.remove(tpt_1)
+    # tpt_val=[]
 
+    # tpt_2=HR_zip[HR_zip[53 +tpt_0] +tpt_1]
+    # for i in range(len(cards_remaining)):
+    #     tpt_3=HR_zip[tpt_2+cards_remaining[i]]
+    #     for j in range(i+1,len(cards_remaining)):
+    #         tpt_4=HR_zip[tpt_3+cards_remaining[j]]
+    #         for k in range(j+1,len(cards_remaining)):
+    #             tpt_val.append(HR_zip[tpt_4+cards_remaining[k]])
+                
+    # tpt_val_dict = {}
+    # for i in range( len(tpt_val)):
+    #     tpt_val_dict[(tpt_val[i])>>12] = tpt_val_dict.get(tpt_val[i],0)+1
+
+    # for i,v in tpt_val_dict.items():
+    #     value=value+(i*v)
+
+
+    start_time=time.time()
+    all_cards = ['C2', 'D2', 'H2', 'S2', 'C3', 'D3', 'H3', 'S3', 
+                        'C4', 'D4', 'H4', 'S4', 'C5', 'D5', 'H5', 'S5', 
+                        'C6', 'D6', 'H6', 'S6', 'C7', 'D7', 'H7', 'S7',
+                        'C8', 'D8', 'H8', 'S8', 'C9', 'D9', 'H9', 'S9', 
+                        'CT', 'DT', 'HT', 'ST', 'CJ', 'DJ', 'HJ', 'SJ',
+                        'CQ', 'DQ', 'HQ', 'SQ', 'CK', 'DK', 'HK', 'SK', 
+                        'CA', 'DA', 'HA', 'SA']
+    lib_eval=[]
+    if river==[]:
+        all_cards.remove(hand[0])
+        all_cards.remove(hand[1])
+        for i in range(len(all_cards)):
+            for j in range(i+1,len(all_cards)):
+                for k in range(j+1,len(all_cards)):
+                    lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1], all_cards[i][::-1], all_cards[j][::-1], all_cards[k][::-1]))
+    elif len(river)==3:
+            all_cards.remove(hand[0])
+            all_cards.remove(hand[1])
+            all_cards.remove(river[0])
+            all_cards.remove(river[1])
+            all_cards.remove(river[2])
+            for i in range(len(all_cards)):
+                lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1]))
+    elif len(river)==4:
+            all_cards.remove(hand[0])
+            all_cards.remove(hand[1])
+            all_cards.remove(river[0])
+            all_cards.remove(river[1])
+            all_cards.remove(river[2])
+            all_cards.remove(river[3])
+            for i in range(len(all_cards)):
+                lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1]))
+    elif len(river)==5:
+            lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1]))
+
+    print("--- %s seconds ---" % (time.time() - start_time))
+    
+
+               
+    lib_eval_dict = {}
+    for i in range(len(lib_eval)):
+        lib_eval_dict[(lib_eval[i])] = lib_eval_dict.get(lib_eval[i],0)+1
+
+    for i,v in lib_eval_dict.items():
+        value=value+(i*v)
+    value=value/sum(lib_eval_dict.values())
+    value=(7462-value)/7462 
+
+    return value,variance # TODO: IMPLEMENT ME
+
+def lookup_value(i):
+    x=i[1]
+    y=i[0]
+    # Assign suite a value
+    if x=='C':
+        suite=0
+    elif x=='D':
+        suite=1
+    elif x=='H':
+        suite=2
+    elif x=='S':
+        suite=3
+    # Assign card values, edit face card values
+    if y=='A':
+        card=12
+    elif y=='K':
+        card=11
+    elif y=='Q':
+        card=10
+    elif y=='J':
+        card=9
+    elif y=='T':
+        card=8
+    else:card=int(y)-2
+    return card*4+suite+1
+    
 class Node:
-    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history, owner, action, leaf=False, curr_level=0):
+    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history, TPT,owner, action, leaf=False, curr_level=0):
         self.position = position                # If the agent is the First Player or Second Player (0 or 1)
         self.owner = owner                      # 1 = Poker Agent, 2 = Opposing Player, 3 = Nature
         self.hand = hand                        # Hand of the Agent
@@ -25,6 +127,7 @@ class Node:
         self.curr_level = curr_level            # Current level of the tree
         self.action_history = action_history    # Action History
         self.action = action                    # Action which led to this node {'CALL', 'RAISE', 'FOLD', 'NATURE', 'SMALLBLIND', 'BIGBLIND'}
+        self.TPT = TPT                    # Action which led to this node {'CALL', 'RAISE', 'FOLD', 'NATURE', 'SMALLBLIND', 'BIGBLIND'}
 
 
     def get_actions(self, is_preflop=False) -> list:
@@ -81,22 +184,24 @@ class Node:
         # If nature controlled node, report max possible winnings
         if self.owner == 3:
             return self.pot
+        
+        hand_strength,variance = calculate_hand_strength(self.TPT, self.hand, self.river) # Note: hand will always be our (player 1's) cards
 
         # If preflop, expect to win the hand
-        if is_preflop:
-            return self.pot
+        # if is_preflop:
+        #     return self.pot
 
-        hand_strength = calculate_hand_strength(self.hand, self.river) # Note: hand will always be our (player 1's) cards
 
         # TODO: Account for p2 predicted expected hand strength
         # TODO: Account for bluffing
         # TODO: Account for aggression
         # TODO: Account for past results
-        feels_like_a_weaker_hand = hand_strength < 0.5
+        feels_like_a_weaker_hand = hand_strength < 0.75
+        print(feels_like_a_weaker_hand,hand_strength)
 
         # If we feel that our hand is weaker, we expect to lose all that we've bet so far.
         if feels_like_a_weaker_hand:
-            return -1*p1_bet_amount
+            return -hand_strength*p1_bet_amount
 
         # In all other cases, we expect to win the pot
         return self.pot
@@ -129,7 +234,8 @@ class Node:
             owner=self.owner,
             leaf=True,
             curr_level=self.curr_level+1,
-            action='FOLD'
+            action='FOLD',
+            TPT=self.TPT
         )))
 
         # Call State
@@ -151,7 +257,8 @@ class Node:
                 owner=next,
                 leaf=is_k,
                 curr_level=self.curr_level+1,
-                action='CALL'
+                action='CALL',
+                TPT=self.TPT
             )))
 
         # Raise State
@@ -173,7 +280,9 @@ class Node:
                 owner=next,
                 leaf=is_k,
                 curr_level=self.curr_level+1,
-                action='RAISE'
+                action='RAISE',
+                TPT=self.TPT
+                
             )))
 
         return moves
@@ -202,11 +311,10 @@ class Node:
 
         # Remaining cards Choose 3 cards states
         if num_cards == 3:
-            valid_combinations = list(combinations(remaining_cards, num_cards))
             moves = [(-1, Node(
                 position=self.position,
                 hand=self.hand,
-                river=list(branch),
+                river=[],
                 betting_amount=self.betting_amount,
                 player_money=[self.p1_money, self.p2_money, self.pot],
                 round=self.round,
@@ -215,14 +323,15 @@ class Node:
                 owner=next,
                 leaf=is_k,
                 curr_level=self.curr_level+1,
-                action='NATURE'
-            )) for branch in valid_combinations]
+                action='NATURE',
+                TPT=self.TPT
+            ))]
 
         else:
             moves = [(-1, Node(
                 position=self.position,
                 hand=self.hand,
-                river=self.river + [card],
+                river=self.river ,
                 betting_amount=self.betting_amount,
                 player_money=[self.p1_money, self.p2_money, self.pot],
                 round=self.round,
@@ -231,7 +340,8 @@ class Node:
                 owner=next,
                 leaf=is_k,
                 curr_level=self.curr_level+1,
-                action='NATURE'
-            )) for card in remaining_cards]
+                action='NATURE',
+                TPT=self.TPT
+            ))]
 
         return moves

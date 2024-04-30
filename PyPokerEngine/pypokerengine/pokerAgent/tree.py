@@ -1,7 +1,7 @@
 from .node import Node
 
 class Tree:
-    def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history):
+    def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history,TPT):
         self.position = position                # 0 = Big Blind, 1 = Small Blind
         self.hand = hand                        # Hand of the player
         self.river = river                      # River Cards
@@ -13,8 +13,8 @@ class Tree:
         self.round = round                      # Round Number
         self.k = k                              # Game Tree depth
         self.action_history = action_history    # action history
-        self.root = Node(position, hand, river, (call_amount, raise_amount), (p1Money, p2Money, pot), round, k, action_history, owner=1, action=action_history[-1][1]) # Current State
-
+        self.TPT=TPT
+        self.root = Node(position, hand, river, (call_amount, raise_amount), (p1Money, p2Money, pot), round, k, action_history,TPT, owner=1, action=action_history[-1][1]) # Current State
 
 
     def pick_Action(self) -> int:
