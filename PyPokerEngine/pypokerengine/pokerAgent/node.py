@@ -197,8 +197,8 @@ class Node:
         hand_strength,opp_hand_strength, variance,opp_variance= calculate_hand_strength(self.TPT, self.hand, self.river) # Note: hand will always be our (player 1's) cards
 
         # If preflop, expect to win the hand
-        # if is_preflop:
-        #     return self.pot
+        if is_preflop:
+            return self.pot
 
 
         # TODO: Account for p2 predicted expected hand strength
@@ -321,7 +321,7 @@ class Node:
             moves = [(-1, Node(
                 position=self.position,
                 hand=self.hand,
-                river=[],
+                river=list(branch),
                 betting_amount=self.betting_amount,
                 player_money=[self.p1_money, self.p2_money, self.pot],
                 round=self.round,
