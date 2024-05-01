@@ -4,31 +4,11 @@ import random
 import time
 from phevaluator.evaluator import evaluate_cards
 
-def calculate_hand_strength(HR_zip, hand, river):
+def calculate_hand_strength(hand, river):
     # Given hand cards ('hand', 2 cards) and community cards ('river', up to 5 cards)
     # Determine the holder's hand strength
-    # cards_remaining = list(range(1,52))
-    # tpt_0=lookup_value(hand[0][::-1])
-    # tpt_1=lookup_value(hand[1][::-1])
-    # cards_remaining.remove(tpt_0)
-    # cards_remaining.remove(tpt_1)
-    # tpt_val=[]
-
-    # tpt_2=HR_zip[HR_zip[53 +tpt_0] +tpt_1]
-    # for i in range(len(cards_remaining)):
-    #     tpt_3=HR_zip[tpt_2+cards_remaining[i]]
-    #     for j in range(i+1,len(cards_remaining)):
-    #         tpt_4=HR_zip[tpt_3+cards_remaining[j]]
-    #         for k in range(j+1,len(cards_remaining)):
-    #             tpt_val.append(HR_zip[tpt_4+cards_remaining[k]])
-                
-    # tpt_val_dict = {}
-    # for i in range( len(tpt_val)):
-    #     tpt_val_dict[(tpt_val[i])>>12] = tpt_val_dict.get(tpt_val[i],0)+1
-
-    # for i,v in tpt_val_dict.items():
-    #     value=value+(i*v)
-
+    value=0
+    variance=0
 
     start_time=time.time()
     all_cards = ['C2', 'D2', 'H2', 'S2', 'C3', 'D3', 'H3', 'S3', 
@@ -66,7 +46,6 @@ def calculate_hand_strength(HR_zip, hand, river):
             all_cards.remove(river[1])
             all_cards.remove(river[2])
             all_cards.remove(river[3])
-
             for i in range(len(all_cards)):
                 for j in range(len(all_cards)):
                     opp_eval.append(evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1],all_cards[j][::-1]))
@@ -74,7 +53,6 @@ def calculate_hand_strength(HR_zip, hand, river):
             for i in range(len(all_cards)):
                 lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1]))
     elif len(river)==5:
-            
             all_cards.remove(hand[0])
             all_cards.remove(hand[1])
             all_cards.remove(river[0])
@@ -88,14 +66,13 @@ def calculate_hand_strength(HR_zip, hand, river):
     
             lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1]))
 
-    # print("--- %s seconds ---" % (time.time() - start_time))
+    print("--- %s seconds ---" % (time.time() - start_time))
     
 
                
     lib_eval_dict = {}
     for i in range(len(lib_eval)):
         lib_eval_dict[(lib_eval[i])] = lib_eval_dict.get(lib_eval[i],0)+1
-
     opp_eval_dict = {}
     for i in range(len(opp_eval)):
         opp_eval_dict[(opp_eval[i])] = opp_eval_dict.get(opp_eval[i],0)+1
@@ -105,8 +82,6 @@ def calculate_hand_strength(HR_zip, hand, river):
         value=value+(i*v)
     value=value/sum(lib_eval_dict.values())
     value=(7462-value)/7462 
-    variance=0
-
 
     opp_value=0
     for i,v in opp_eval_dict.items():
@@ -116,7 +91,7 @@ def calculate_hand_strength(HR_zip, hand, river):
     opp_variance=0
 
 
-    return value, opp_value, variance, opp_variance # TODO: IMPLEMENT ME
+    return value, opp_value, variance, opp_variance  # TODO: IMPLEMENT ME
 
 def lookup_value(i):
     x=i[1]
@@ -145,7 +120,7 @@ def lookup_value(i):
     return card*4+suite+1
     
 class Node:
-    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history, TPT,owner, action, leaf=False, curr_level=0):
+    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history,owner, action, leaf=False, curr_level=0):
         self.position = position                # If the agent is the First Player or Second Player (0 or 1)
         self.owner = owner                      # 1 = Poker Agent, 2 = Opposing Player, 3 = Nature
         self.hand = hand                        # Hand of the Agent
@@ -162,7 +137,6 @@ class Node:
         self.curr_level = curr_level            # Current level of the tree
         self.action_history = action_history    # Action History
         self.action = action                    # Action which led to this node {'CALL', 'RAISE', 'FOLD', 'NATURE', 'SMALLBLIND', 'BIGBLIND'}
-        self.TPT = TPT                    # Action which led to this node {'CALL', 'RAISE', 'FOLD', 'NATURE', 'SMALLBLIND', 'BIGBLIND'}
 
 
     def get_actions(self, is_preflop=False) -> list:
@@ -231,12 +205,12 @@ class Node:
         # TODO: Account for bluffing
         # TODO: Account for aggression
         # TODO: Account for past results
-        feels_like_a_weaker_hand = abs(hand_strength-opp_hand_strength)<0.3
-        print(feels_like_a_weaker_hand,hand_strength,opp_hand_strength)
+        feels_like_a_weaker_hand = abs(hand_strength-opp_hand_strength) < 0.75
+        print(feels_like_a_weaker_hand,hand_strength)
 
         # If we feel that our hand is weaker, we expect to lose all that we've bet so far.
         if feels_like_a_weaker_hand:
-            return -(hand_strength-opp_hand_strength)*p1_bet_amount
+            return -1*p1_bet_amount
 
         # In all other cases, we expect to win the pot
         return self.pot
@@ -270,7 +244,6 @@ class Node:
             leaf=True,
             curr_level=self.curr_level+1,
             action='FOLD',
-            TPT=self.TPT
         )))
 
         # Call State
@@ -293,7 +266,6 @@ class Node:
                 leaf=is_k,
                 curr_level=self.curr_level+1,
                 action='CALL',
-                TPT=self.TPT
             )))
 
         # Raise State
@@ -316,7 +288,6 @@ class Node:
                 leaf=is_k,
                 curr_level=self.curr_level+1,
                 action='RAISE',
-                TPT=self.TPT
                 
             )))
 
@@ -346,6 +317,7 @@ class Node:
 
         # Remaining cards Choose 3 cards states
         if num_cards == 3:
+            valid_combinations = list(combinations(remaining_cards, num_cards))
             moves = [(-1, Node(
                 position=self.position,
                 hand=self.hand,
@@ -359,14 +331,13 @@ class Node:
                 leaf=is_k,
                 curr_level=self.curr_level+1,
                 action='NATURE',
-                TPT=self.TPT
-            ))]
+            ))for branch in valid_combinations]
 
         else:
             moves = [(-1, Node(
                 position=self.position,
                 hand=self.hand,
-                river=self.river ,
+                river=self.river + [card],
                 betting_amount=self.betting_amount,
                 player_money=[self.p1_money, self.p2_money, self.pot],
                 round=self.round,
@@ -376,7 +347,6 @@ class Node:
                 leaf=is_k,
                 curr_level=self.curr_level+1,
                 action='NATURE',
-                TPT=self.TPT
-            ))]
+            ))for card in remaining_cards]
 
         return moves
