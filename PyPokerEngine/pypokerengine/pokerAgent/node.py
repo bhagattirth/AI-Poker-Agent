@@ -121,7 +121,7 @@ def lookup_value(i):
     return card*4+suite+1
     
 class Node:
-    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history,owner, action, leaf=False, curr_level=0):
+    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history,owner, action, aggression=0, leaf=False, curr_level=0):
         self.position = position                # If the agent is the First Player or Second Player (0 or 1)
         self.owner = owner                      # 1 = Poker Agent, 2 = Opposing Player, 3 = Nature
         self.hand = hand                        # Hand of the Agent
@@ -132,12 +132,13 @@ class Node:
         self.p1_money = player_money[0]         # Money of the player 1
         self.p2_money = player_money[1]         # Money of the player 2
         self.pot = player_money[2]              # Pot
-        self.round = round                      # current Round
+        self.round = round                      # Current Round
         self.k = k                              # Number of cards to draw
-        self.is_leaf = leaf                     # Is this a leaf node
+        self.is_leaf = leaf                     # Is this a leaf node?
         self.curr_level = curr_level            # Current level of the tree
         self.action_history = action_history    # Action History
         self.action = action                    # Action which led to this node {'CALL', 'RAISE', 'FOLD', 'NATURE', 'SMALLBLIND', 'BIGBLIND'}
+        self.aggression = aggression            # How aggressively is player 2 playing?
 
 
     def get_actions(self, is_preflop=False) -> list:
@@ -145,7 +146,6 @@ class Node:
         get_actions returns the possible actions the player can take
         return: returns a list of states from valid actions
         """
-
         if self.is_leaf: # There are no actions at a termimal node
             return None
 
@@ -201,11 +201,11 @@ class Node:
         if is_preflop:
             return self.pot
 
-
         # TODO: Account for p2 predicted expected hand strength
         # TODO: Account for bluffing
         # TODO: Account for aggression
         # TODO: Account for past results
+
         feels_like_a_weaker_hand = abs(hand_strength-opp_hand_strength) < 0.75
         print(feels_like_a_weaker_hand,hand_strength)
 
@@ -228,8 +228,32 @@ class Node:
             opp_bluff_prob += 0.1
         if hand_strength < pred_p2_hand_strength:
             opp_bluff_prob += 0.1
-        # TODO: based on action history, we need to account how aggressively the opponent bets. account for aggression and past results.
         return opp_bluff_prob
+    
+    def opp_aggression(self):
+        """
+        opp_aggression accounts how aggressively the opponent is playing/betting throughout the game
+        return: returns the value of self.aggression 
+        """
+        # TODO: added this attribute everywhere when initializing a node in order to keep track throughout the games, 
+        # TODO: but the initialization might need to be fixed to prevent potential bugs of always being set to 0.
+        # TODO: if self.aggression is always 0 (bug), look at pokeragent.py, node.py, and tree.py.
+        prev_action = None
+        if len(self.action_history) > 0:
+            prev_action = self.action_history[-1][1]
+        # TODO: need to optimize values more appropriately for self.aggression based on the actions and how it ties to main heuristic.
+        # TODO: do we want the range from [0, 1] or [0, inf)?
+        if prev_action == 'RAISE':
+            self.aggression += 1
+        elif prev_action == 'CALL':
+            self.aggression += 0.5
+        elif prev_action == 'FOLD':
+            self.aggression -= 1
+            if self.aggression < 0:
+                self.aggression = 0
+        else:
+            self.aggression = 0
+        return self.aggression
 
     def action_helper_player(self, next, money):
         """
@@ -238,8 +262,6 @@ class Node:
         :money: money of the player
         return: returns a list of states from valid actions
         """
-
-
         next_round = self.round + 1 if next == 3 else self.round # Check if taking an action leads to the next round
         is_k = self.k <= self.curr_level + 1 or next_round == 5  # Check if the depth limit is reached or the game is over
         moves = [] # List of valid states
