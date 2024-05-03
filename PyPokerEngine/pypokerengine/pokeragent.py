@@ -26,6 +26,7 @@ class PokerAgent(BasePokerPlayer):
     pot = round_state["pot"]["main"]["amount"]                                            # Pot Amount
     call_amount = valid_actions[1]["amount"]                                              # Call Amount
     raise_amount = valid_actions[2]["amount"]["min"]                                      # Raise Amount
+    raise_count = 1 if position == 1 and round_state['action_histories'][street][-1]['action'] == 'RAISE' else 0
     k = 3                                                                                 # Depth Limit
     action_history = [(
           1 if item['uuid'] == p1_info['uuid'] else 2,
@@ -46,6 +47,7 @@ class PokerAgent(BasePokerPlayer):
       round=round,
       k=k,
       action_history=action_history,
+      raise_count=raise_count
     )
     action = tree.pick_Action() # Returns "Optimal" move: 0 = Fold, 1 = Call, 2 = Raise
     move = valid_actions[action]

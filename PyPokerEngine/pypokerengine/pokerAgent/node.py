@@ -8,7 +8,7 @@ def calculate_hand_strength(hand, river):
     return random.random() # TODO: IMPLEMENT ME
 
 class Node:
-    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history, owner, action, leaf=False, curr_level=0):
+    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history, owner, action, leaf=False, curr_level=0, raise_count=0):
         self.position = position                # If the agent is the First Player or Second Player (0 or 1)
         self.owner = owner                      # 1 = Poker Agent, 2 = Opposing Player, 3 = Nature
         self.hand = hand                        # Hand of the Agent
@@ -25,6 +25,7 @@ class Node:
         self.curr_level = curr_level            # Current level of the tree
         self.action_history = action_history    # Action History
         self.action = action                    # Action which led to this node {'CALL', 'RAISE', 'FOLD', 'NATURE', 'SMALLBLIND', 'BIGBLIND'}
+        self.raise_count = raise_count          # Number of Raises
 
 
     def get_actions(self, is_preflop=False) -> list:
@@ -45,13 +46,18 @@ class Node:
         elif self.owner == 2 and self.position == 1:            # If the opponent plays second
             return self.action_helper_player(1, self.p2_money)
 
+        # if self.owner == 1:             # If the pokeragent plays first
+        #     return self.action_helper_player(self.p1_money)
+        # elif:
+        #     return self.action_helper_player(self.p2_money) #t
+
         if is_preflop:
             return None
 
         if self.owner == 3 and self.position == 0:            # Natures Turn and next player is the pokeragent
-            return self.action_helper_nature(2)
+            return self.action_helper_nature(1)
         else:
-            return self.action_helper_nature(1)                 # Natures Turn and next player is the opponent
+            return self.action_helper_nature(2)                 # Natures Turn and next player is the opponent
 
 
     def is_leaf_node(self) -> bool:
@@ -124,9 +130,6 @@ class Node:
         return: returns a list of states from valid actions
         """
 
-
-        next_round = self.round + 1 if next == 3 else self.round # Check if taking an action leads to the next round
-        is_k = self.k <= self.curr_level + 1 or next_round == 5  # Check if the depth limit is reached or the game is over
         moves = [] # List of valid states
 
         # Fold State
@@ -136,7 +139,7 @@ class Node:
             river=self.river,
             betting_amount=self.betting_amount,
             player_money=[self.p1_money, self.p2_money, self.pot],
-            round=next_round,
+            round=self.round,
             k=self.k,
             action_history=[*self.action_history, (self.owner, 'FOLD', 0.0)],
             owner=self.owner,
@@ -147,13 +150,29 @@ class Node:
 
         # Call State
         if  money >= self.call_amount:
+            if self.raise_count > 0:
+                next = 3
+                if self.position == 0 and self.owner == 1:
+                    next_position = 1
+                elif self.position == 0 and self.owner == 2:
+                    next_position = 0
+                elif self.position == 1 and self.owner == 1:
+                    next_position = 1
+                elif self.position == 1 and self.owner == 2:
+                    next_position = 0
+            else:
+                next_position = self.position
+
+            next_round = self.round + 1 if next == 3 else self.round
+            is_k = self.k <= self.curr_level + 1 or next_round == 5  # Check if the depth limit is reached or the game is over 
+
             # Update the money of the player after calling
             d1 = self.p1_money - self.call_amount if self.owner == 1 else self.p1_money
             d2 = self.p2_money - self.call_amount if self.owner == 2 else self.p2_money
             new_amounts = (0, 10) # Update the betting amounts
 
             moves.append((1, Node(
-                position=self.position,
+                position=next_position,
                 hand=self.hand,
                 river=self.river,
                 betting_amount=new_amounts,
@@ -164,16 +183,21 @@ class Node:
                 owner=next,
                 leaf=is_k,
                 curr_level=self.curr_level+1,
-                action='CALL'
+                action='CALL',
+                raise_count=self.raise_count
             )))
 
         # Raise State
-        if  money >= self.raise_amount :
+        if  money >= self.raise_amount and self.raise_count <= 4:
             # Update the money of the player after raising
-            d1 = self.p1_money - self.raise_amount  if self.owner == 1 else self.p1_money
+            d1 = self.p1_money - self.raise_amount if self.owner == 1 else self.p1_money
             d2 = self.p2_money - self.raise_amount if self.owner == 2 else self.p2_money
-
             new_amounts = (10, 20) #updating the betting amounts
+                   
+            next = 2 if self.owner == 1 else 1
+            next_round = self.round
+            is_k = self.k <= self.curr_level + 1 or next_round == 5 
+
             moves.append((2, Node(
                 position=self.position,
                 hand=self.hand,
@@ -186,7 +210,8 @@ class Node:
                 owner=next,
                 leaf=is_k,
                 curr_level=self.curr_level+1,
-                action='RAISE'
+                action='RAISE',
+                raise_count=self.raise_count+1
             )))
 
         return moves
@@ -199,7 +224,7 @@ class Node:
         :next: next player
         return: returns a list of states from valid actions
         """
-        self.owner = 1 if self.position == 0 else 2
+
         is_k = self.k <= self.curr_level + 1    # Checks if the depth limit is reached
         num_cards = 3 if self.round == 2 else 1 # Number of cards to show on the river
 
