@@ -103,7 +103,6 @@ class Node:
         self.aggression = aggression            # How aggressively is player 2 playing?
         self.raise_count = raise_count          # Number of Raises
 
-
     def get_actions(self, is_preflop=False) -> list:
         """
         get_actions returns the possible actions the player can take
