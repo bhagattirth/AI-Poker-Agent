@@ -3,6 +3,7 @@ from itertools import combinations
 import random
 import time
 from phevaluator.evaluator import evaluate_cards
+import numpy as np
 
 def calculate_hand_strength(hand, river):
     # Given hand cards ('hand', 2 cards) and community cards ('river', up to 5 cards)
@@ -74,6 +75,12 @@ def calculate_hand_strength(hand, river):
 
     # PokerMan Variance Calculation:
     variance=0
+    for i,v in lib_eval_dict.items():
+        i_norm=(7462-i)/7462 
+        variance= (np.power(i_norm-value,2)*v)+variance
+    variance=np.sqrt(variance)
+    if len(lib_eval_dict)>0:variance=variance/sum(lib_eval_dict.values())
+
 
     # Opponent Value Calculation:
     opp_value=0
@@ -84,6 +91,12 @@ def calculate_hand_strength(hand, river):
 
     # Opponent Variance Calculation:
     opp_variance=0
+    for i,v in opp_eval_dict.items():
+        i_norm=(7462-i)/7462 
+        opp_variance= (np.power(i_norm-opp_value,2)*v)+opp_variance
+    opp_variance=np.sqrt(opp_variance)
+    if len(opp_eval_dict)>0:opp_variance=opp_variance/sum(opp_eval_dict.values())
+
 
 
 
