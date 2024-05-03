@@ -7,9 +7,6 @@ from phevaluator.evaluator import evaluate_cards
 def calculate_hand_strength(hand, river):
     # Given hand cards ('hand', 2 cards) and community cards ('river', up to 5 cards)
     # Determine the holder's hand strength
-    value=0
-    variance=0
-
     start_time=time.time()
     all_cards = ['C2', 'D2', 'H2', 'S2', 'C3', 'D3', 'H3', 'S3', 
                         'C4', 'D4', 'H4', 'S4', 'C5', 'D5', 'H5', 'S5', 
@@ -20,56 +17,47 @@ def calculate_hand_strength(hand, river):
                         'CA', 'DA', 'HA', 'SA']
     lib_eval=[]
     opp_eval=[]
-    if river==[]:
+    if river==[]: #Computing hand values for preflop round
         all_cards.remove(hand[0])
         all_cards.remove(hand[1])
         for i in range(len(all_cards)):
             for j in range(i+1,len(all_cards)):
                 for k in range(j+1,len(all_cards)):
                     lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1], all_cards[i][::-1], all_cards[j][::-1], all_cards[k][::-1]))
-    # elif len(river)==3:
-    #         all_cards.remove(hand[0])
-    #         all_cards.remove(hand[1])
-    #         all_cards.remove(river[0])
-    #         all_cards.remove(river[1])
-    #         all_cards.remove(river[2])
-    #         for i in range(len(all_cards)):
-    #             for j in range(len(all_cards)):
-    #                 opp_eval.append(evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1],all_cards[j][::-1]))
-    
-    #         for i in range(len(all_cards)):
-    #             lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1]))
-    # elif len(river)==4:
-    #         all_cards.remove(hand[0])
-    #         all_cards.remove(hand[1])
-    #         all_cards.remove(river[0])
-    #         all_cards.remove(river[1])
-    #         all_cards.remove(river[2])
-    #         all_cards.remove(river[3])
-    #         for i in range(len(all_cards)):
-    #             for j in range(len(all_cards)):
-    #                 opp_eval.append(evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1],all_cards[j][::-1]))
-    
-    #         for i in range(len(all_cards)):
-    #             lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1]))
-    # elif len(river)==5:
-    #         all_cards.remove(hand[0])
-    #         all_cards.remove(hand[1])
-    #         all_cards.remove(river[0])
-    #         all_cards.remove(river[1])
-    #         all_cards.remove(river[2])
-    #         all_cards.remove(river[3])
-    #         all_cards.remove(river[4])
-    #         for i in range(len(all_cards)):
-    #             for j in range(len(all_cards)):
-    #                 opp_eval.append(evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1],all_cards[i][::-1],all_cards[j][::-1]))
-    
-    #         lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1]))
+    elif len(river)==3:
+            all_cards.remove(hand[0])
+            all_cards.remove(hand[1])
+            all_cards.remove(river[0])
+            all_cards.remove(river[1])
+            all_cards.remove(river[2])
+            for i in range(len(all_cards)):
+                for j in range(len(all_cards)):
+                    opp_eval.append(evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1],all_cards[j][::-1]))
+            lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1]))
+    elif len(river)==4:
+            all_cards.remove(hand[0])
+            all_cards.remove(hand[1])
+            all_cards.remove(river[0])
+            all_cards.remove(river[1])
+            all_cards.remove(river[2])
+            all_cards.remove(river[3])
+            for i in range(len(all_cards)):
+                for j in range(len(all_cards)):
+                    opp_eval.append(evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1],all_cards[j][::-1]))
+            lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1]))
+    elif len(river)==5:
+            all_cards.remove(hand[0])
+            all_cards.remove(hand[1])
+            all_cards.remove(river[0])
+            all_cards.remove(river[1])
+            all_cards.remove(river[2])
+            all_cards.remove(river[3])
+            all_cards.remove(river[4])
+            for i in range(len(all_cards)):
+                for j in range(len(all_cards)):
+                    opp_eval.append(evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1],all_cards[i][::-1],all_cards[j][::-1]))
+            lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1]))
 
-    print("--- %s seconds ---" % (time.time() - start_time))
-    
-
-               
     lib_eval_dict = {}
     for i in range(len(lib_eval)):
         lib_eval_dict[(lib_eval[i])] = lib_eval_dict.get(lib_eval[i],0)+1
@@ -77,19 +65,27 @@ def calculate_hand_strength(hand, river):
     for i in range(len(opp_eval)):
         opp_eval_dict[(opp_eval[i])] = opp_eval_dict.get(opp_eval[i],0)+1
 
+    # PokerMan Value calculation
     value=0
     for i,v in lib_eval_dict.items():
         value=value+(i*v)
     if len(lib_eval_dict)>0:value=value/sum(lib_eval_dict.values())
-    
     value=(7462-value)/7462 
 
+    # PokerMan Variance Calculation:
+    variance=0
+
+    # Opponent Value Calculation:
     opp_value=0
     for i,v in opp_eval_dict.items():
         opp_value=opp_value+(i*v)
     if len(opp_eval_dict)>0:opp_value=opp_value/sum(opp_eval_dict.values())
     opp_value=(7462-opp_value)/7462 
+
+    # Opponent Variance Calculation:
     opp_variance=0
+
+
 
 
     return value, opp_value, variance, opp_variance  # TODO: IMPLEMENT ME
@@ -206,7 +202,7 @@ class Node:
         # TODO: Account for bluffing
         # TODO: Account for aggression
         # TODO: Account for past results
-        feels_like_a_weaker_hand = abs(hand_strength-opp_hand_strength) < 0.75
+        feels_like_a_weaker_hand = abs(hand_strength-opp_hand_strength) < 0.5
         print(feels_like_a_weaker_hand,hand_strength)
 
         # If we feel that our hand is weaker, we expect to lose all that we've bet so far.
