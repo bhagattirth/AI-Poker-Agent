@@ -1,6 +1,4 @@
-# import numpy as np
 from itertools import combinations
-import random
 import time
 from phevaluator.evaluator import evaluate_cards
 import numpy as np
@@ -16,119 +14,74 @@ def calculate_hand_strength(hand, river):
                         'CT', 'DT', 'HT', 'ST', 'CJ', 'DJ', 'HJ', 'SJ',
                         'CQ', 'DQ', 'HQ', 'SQ', 'CK', 'DK', 'HK', 'SK', 
                         'CA', 'DA', 'HA', 'SA']
-    lib_eval=[]
-    opp_eval=[]
+    card_eval={}
+    opp_eval={}
+    for card in hand:
+        all_cards.remove(card)
+
+    for card in river:
+        all_cards.remove(card)
+
     if river==[]: #Computing hand values for preflop round
-        all_cards.remove(hand[0])
-        all_cards.remove(hand[1])
         for i in range(len(all_cards)):
             for j in range(i+1,len(all_cards)):
                 for k in range(j+1,len(all_cards)):
-                    lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1], all_cards[i][::-1], all_cards[j][::-1], all_cards[k][::-1]))
+                    card_value=evaluate_cards(hand[0][::-1],hand[1][::-1], all_cards[i][::-1], all_cards[j][::-1], all_cards[k][::-1])
+                    card_eval[card_value]=card_eval.get(card_value,0)+1
     elif len(river)==3:
-            all_cards.remove(hand[0])
-            all_cards.remove(hand[1])
-            all_cards.remove(river[0])
-            all_cards.remove(river[1])
-            all_cards.remove(river[2])
-            for i in range(len(all_cards)):
-                for j in range(len(all_cards)):
-                    opp_eval.append(evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1],all_cards[j][::-1]))
-            lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1]))
+        for i in range(len(all_cards)):
+            for j in range(i+1,len(all_cards)):
+                opp_value=evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1],all_cards[j][::-1])
+                opp_eval[opp_value]=opp_eval.get(opp_value,0)+1
+        card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1])
+        card_eval[card_value]=card_eval.get(card_value,0)+1
     elif len(river)==4:
-            all_cards.remove(hand[0])
-            all_cards.remove(hand[1])
-            all_cards.remove(river[0])
-            all_cards.remove(river[1])
-            all_cards.remove(river[2])
-            all_cards.remove(river[3])
-            for i in range(len(all_cards)):
-                for j in range(len(all_cards)):
-                    opp_eval.append(evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1],all_cards[j][::-1]))
-            lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1]))
+        for i in range(len(all_cards)):
+            for j in range(i+1,len(all_cards)):
+                opp_value=evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1],all_cards[j][::-1])
+                opp_eval[opp_value]=opp_eval.get(opp_value,0)+1
+        card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1])
+        card_eval[card_value]=card_eval.get(card_value,0)+1
     elif len(river)==5:
-            all_cards.remove(hand[0])
-            all_cards.remove(hand[1])
-            all_cards.remove(river[0])
-            all_cards.remove(river[1])
-            all_cards.remove(river[2])
-            all_cards.remove(river[3])
-            all_cards.remove(river[4])
-            for i in range(len(all_cards)):
-                for j in range(len(all_cards)):
-                    opp_eval.append(evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1],all_cards[i][::-1],all_cards[j][::-1]))
-            lib_eval.append(evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1]))
-
-    lib_eval_dict = {}
-    for i in range(len(lib_eval)):
-        lib_eval_dict[(lib_eval[i])] = lib_eval_dict.get(lib_eval[i],0)+1
-    opp_eval_dict = {}
-    for i in range(len(opp_eval)):
-        opp_eval_dict[(opp_eval[i])] = opp_eval_dict.get(opp_eval[i],0)+1
+        for i in range(len(all_cards)):
+            for j in range(i+1,len(all_cards)):
+                    opp_value=evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1],all_cards[i][::-1],all_cards[j][::-1])
+                    opp_eval[opp_value]=opp_eval.get(opp_value,0)+1
+        card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1])
+        card_eval[card_value]=card_eval.get(card_value,0)+1
 
     # PokerMan Value calculation
     value=0
-    for i,v in lib_eval_dict.items():
+    for i,v in card_eval.items():
         value=value+(i*v)
-    if len(lib_eval_dict)>0:value=value/sum(lib_eval_dict.values())
+    if len(card_eval)>0:value=value/sum(card_eval.values())
     value=(7462-value)/7462 
 
     # PokerMan Variance Calculation:
     variance=0
-    for i,v in lib_eval_dict.items():
+    for i,v in card_eval.items():
         i_norm=(7462-i)/7462 
         variance= (np.power(i_norm-value,2)*v)+variance
     variance=np.sqrt(variance)
-    if len(lib_eval_dict)>0:variance=variance/sum(lib_eval_dict.values())
+    if len(card_eval)>0:variance=variance/sum(card_eval.values())
 
 
     # Opponent Value Calculation:
     opp_value=0
-    for i,v in opp_eval_dict.items():
+    for i,v in opp_eval.items():
         opp_value=opp_value+(i*v)
-    if len(opp_eval_dict)>0:opp_value=opp_value/sum(opp_eval_dict.values())
+    if len(opp_eval)>0:opp_value=opp_value/sum(opp_eval.values())
     opp_value=(7462-opp_value)/7462 
 
     # Opponent Variance Calculation:
     opp_variance=0
-    for i,v in opp_eval_dict.items():
+    for i,v in opp_eval.items():
         i_norm=(7462-i)/7462 
         opp_variance= (np.power(i_norm-opp_value,2)*v)+opp_variance
     opp_variance=np.sqrt(opp_variance)
-    if len(opp_eval_dict)>0:opp_variance=opp_variance/sum(opp_eval_dict.values())
-
-
-
-
-
-    return value, opp_value, variance, opp_variance  # TODO: IMPLEMENT ME
-
-def lookup_value(i):
-    x=i[1]
-    y=i[0]
-    # Assign suite a value
-    if x=='C':
-        suite=0
-    elif x=='D':
-        suite=1
-    elif x=='H':
-        suite=2
-    elif x=='S':
-        suite=3
-    # Assign card values, edit face card values
-    if y=='A':
-        card=12
-    elif y=='K':
-        card=11
-    elif y=='Q':
-        card=10
-    elif y=='J':
-        card=9
-    elif y=='T':
-        card=8
-    else:card=int(y)-2
-    return card*4+suite+1
-    
+    if len(opp_eval)>0:opp_variance=opp_variance/sum(opp_eval.values())
+    return value, opp_value, variance, opp_variance  
+ 
 class Node:
     def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history,owner, action, leaf=False, curr_level=0):
         self.position = position                # If the agent is the First Player or Second Player (0 or 1)
