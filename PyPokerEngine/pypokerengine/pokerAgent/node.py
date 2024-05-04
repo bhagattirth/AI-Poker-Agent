@@ -150,37 +150,81 @@ class Node:
         p1_bet_amount = sum([play[2] for play in self.action_history if play[0] == 1])
         p2_bet_amount = sum([play[2] for play in self.action_history if play[0] == 2])
 
+        win_amount = self.pot
+        lose_amount = -1 * p1_bet_amount
+
         # If we fold, we will lose all that we've bet.
         if self.owner == 1 and self.action == 'FOLD':
-            return -1 * p1_bet_amount
+            return lose_amount
 
         # If they fold, we will win the pot.
         if self.owner == 2 and self.action == 'FOLD':
-            return self.pot
+            return win_amount
 
         # If nature controlled node, report max possible winnings
         if self.owner == 3:
-            return self.pot
+            return win_amount
         
-        hand_strength,opp_hand_strength, variance,opp_variance= calculate_hand_strength( self.hand, self.river) # Note: hand will always be our (player 1's) cards
-
         # If preflop, expect to win the hand
         if is_preflop:
-            return self.pot
+            return win_amount
+        
+        p1_hand_strength, p2_hand_strength, p1_hand_strength_var, p2_hand_strength_var = calculate_hand_strength(self.hand, self.river) # Note: hand will always be our (player 1's) cards
+        self.p1_hand_strength = p1_hand_strength
+        self.p2_hand_strength = p2_hand_strength
+        p1_hand_strength_sd = p1_hand_strength_var**(0.5)
+        p2_hand_strength_sd = p2_hand_strength_var**(0.5)
 
-        # TODO: Account for p2 predicted expected hand strength
         # TODO: Account for bluffing
         # TODO: Account for aggression
         # TODO: Account for past results
-        feels_like_a_weaker_hand = abs(hand_strength-opp_hand_strength) < 0.5
-        print(feels_like_a_weaker_hand,hand_strength)
 
-        # If we feel that our hand is weaker, we expect to lose all that we've bet so far.
-        if feels_like_a_weaker_hand:
-            return -1 * p1_bet_amount
+        critical_value = 4 # (>99.99% confidence)
+        # Complete victory: Our hand is stronger than anything the opponent's could be 
+        if self.p1_hand_strength - critical_value*p1_hand_strength_sd > self.p2_hand_strength + critical_value*p2_hand_strength_sd:
+            return win_amount
+
+        # Complete defeat: Our hand is weaker than anything the opponent's could be (99.99% confidence)
+        if self.p2_hand_strength - critical_value*p2_hand_strength_sd > self.p1_hand_strength + critical_value*p1_hand_strength_sd:
+            return lose_amount
+
+        critical_value = 1.28155 # (90% confidence)
+        # Narrow risk of defeat: There is a small chance that we might have a weaker hand
+        if (
+            self.p1_hand_strength - critical_value*p1_hand_strength_sd > self.p2_hand_strength + critical_value*p2_hand_strength_sd 
+            and 1==1
+        ):
+            return win_amount
+
+        # Narrow chance of victory: There is a small chance that we might have a stronger hand
+        if (
+            self.p2_hand_strength - critical_value*p2_hand_strength_sd > self.p1_hand_strength + critical_value*p1_hand_strength_sd
+            and 1==1
+        ):
+            return lose_amount
+
+        critical_value = 0.67449 # (75% confidence)
+        # Moderate risk of defeat: There is a significant chance that we might have a weaker hand
+        if (
+            self.p1_hand_strength - critical_value*p1_hand_strength_sd > self.p2_hand_strength + critical_value*p2_hand_strength_sd
+            and 1==1
+        ):
+            return win_amount
+
+        # Moderate chance of victory: There is a significant chance that we might have a stronger hand
+        if (
+            self.p2_hand_strength - critical_value*p2_hand_strength_sd > self.p1_hand_strength + critical_value*p1_hand_strength_sd
+            and 1==1
+        ):
+            return lose_amount
+
+        # Ambiguity: There is no clear outcome that we can discern based off expected hand strengths
+        # If we feel that our hand is weaker, we expect to lose all that we've bet so far. 
+        if self.p1_hand_strength < self.p2_hand_strength:
+            return lose_amount
 
         # In all other cases, we expect to win the pot
-        return self.pot
+        return win_amount
 
     def calculate_bluff_probability(self):
         """
