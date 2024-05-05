@@ -1,14 +1,89 @@
-# import numpy as np
 from itertools import combinations
-import random
+import time
+from phevaluator.evaluator import evaluate_cards
+import numpy as np
 
 def calculate_hand_strength(hand, river):
     # Given hand cards ('hand', 2 cards) and community cards ('river', up to 5 cards)
     # Determine the holder's hand strength
-    return random.random() # TODO: IMPLEMENT ME
+    start_time=time.time()
+    all_cards = ['C2', 'D2', 'H2', 'S2', 'C3', 'D3', 'H3', 'S3', 
+                        'C4', 'D4', 'H4', 'S4', 'C5', 'D5', 'H5', 'S5', 
+                        'C6', 'D6', 'H6', 'S6', 'C7', 'D7', 'H7', 'S7',
+                        'C8', 'D8', 'H8', 'S8', 'C9', 'D9', 'H9', 'S9', 
+                        'CT', 'DT', 'HT', 'ST', 'CJ', 'DJ', 'HJ', 'SJ',
+                        'CQ', 'DQ', 'HQ', 'SQ', 'CK', 'DK', 'HK', 'SK', 
+                        'CA', 'DA', 'HA', 'SA']
+    card_eval={}
+    opp_eval={}
+    for card in hand:
+        all_cards.remove(card)
 
+    for card in river:
+        all_cards.remove(card)
+
+    if river==[]: #Computing hand values for preflop round
+        for i in range(len(all_cards)):
+            for j in range(i+1,len(all_cards)):
+                for k in range(j+1,len(all_cards)):
+                    card_value=evaluate_cards(hand[0][::-1],hand[1][::-1], all_cards[i][::-1], all_cards[j][::-1], all_cards[k][::-1])
+                    card_eval[card_value]=card_eval.get(card_value,0)+1
+    elif len(river)==3:
+        for i in range(len(all_cards)):
+            for j in range(i+1,len(all_cards)):
+                opp_value=evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1],all_cards[j][::-1])
+                opp_eval[opp_value]=opp_eval.get(opp_value,0)+1
+        card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1])
+        card_eval[card_value]=card_eval.get(card_value,0)+1
+    elif len(river)==4:
+        for i in range(len(all_cards)):
+            for j in range(i+1,len(all_cards)):
+                opp_value=evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1],all_cards[j][::-1])
+                opp_eval[opp_value]=opp_eval.get(opp_value,0)+1
+        card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1])
+        card_eval[card_value]=card_eval.get(card_value,0)+1
+    elif len(river)==5:
+        for i in range(len(all_cards)):
+            for j in range(i+1,len(all_cards)):
+                    opp_value=evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1],all_cards[i][::-1],all_cards[j][::-1])
+                    opp_eval[opp_value]=opp_eval.get(opp_value,0)+1
+        card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1])
+        card_eval[card_value]=card_eval.get(card_value,0)+1
+
+    # PokerMan Value calculation
+    value=0
+    for i,v in card_eval.items():
+        value=value+(i*v)
+    if len(card_eval)>0:value=value/sum(card_eval.values())
+    value=(7462-value)/7462 
+
+    # PokerMan Variance Calculation:
+    variance=0
+    for i,v in card_eval.items():
+        i_norm=(7462-i)/7462 
+        variance= (np.power(i_norm-value,2)*v)+variance
+    variance=np.sqrt(variance)
+    if len(card_eval)>0:variance=variance/sum(card_eval.values())
+
+
+    # Opponent Value Calculation:
+    opp_value=0
+    for i,v in opp_eval.items():
+        opp_value=opp_value+(i*v)
+    if len(opp_eval)>0:opp_value=opp_value/sum(opp_eval.values())
+    opp_value=(7462-opp_value)/7462 
+
+    # Opponent Variance Calculation:
+    opp_variance=0
+    for i,v in opp_eval.items():
+        i_norm=(7462-i)/7462 
+        opp_variance= (np.power(i_norm-opp_value,2)*v)+opp_variance
+    opp_variance=np.sqrt(opp_variance)
+    if len(opp_eval)>0:opp_variance=opp_variance/sum(opp_eval.values())
+    return value, opp_value, variance, opp_variance  
+ 
 class Node:
-    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history, owner, action, leaf=False, curr_level=0, raise_count=0):
+    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history,owner, action, aggression=0, leaf=False, curr_level=0, , raise_count=0):
         self.position = position                # If the agent is the First Player or Second Player (0 or 1)
         self.owner = owner                      # 1 = Poker Agent, 2 = Opposing Player, 3 = Nature
         self.hand = hand                        # Hand of the Agent
@@ -19,12 +94,13 @@ class Node:
         self.p1_money = player_money[0]         # Money of the player 1
         self.p2_money = player_money[1]         # Money of the player 2
         self.pot = player_money[2]              # Pot
-        self.round = round                      # current Round
+        self.round = round                      # Current Round
         self.k = k                              # Number of cards to draw
-        self.is_leaf = leaf                     # Is this a leaf node
+        self.is_leaf = leaf                     # Is this a leaf node?
         self.curr_level = curr_level            # Current level of the tree
         self.action_history = action_history    # Action History
         self.action = action                    # Action which led to this node {'CALL', 'RAISE', 'FOLD', 'NATURE', 'SMALLBLIND', 'BIGBLIND'}
+        self.aggression = aggression            # How aggressively is player 2 playing?
         self.raise_count = raise_count          # Number of Raises
 
 
@@ -33,7 +109,6 @@ class Node:
         get_actions returns the possible actions the player can take
         return: returns a list of states from valid actions
         """
-
         if self.is_leaf: # There are no actions at a termimal node
             return None
 
@@ -87,18 +162,19 @@ class Node:
         # If nature controlled node, report max possible winnings
         if self.owner == 3:
             return self.pot
+        
+        hand_strength,opp_hand_strength, variance,opp_variance= calculate_hand_strength( self.hand, self.river) # Note: hand will always be our (player 1's) cards
 
         # If preflop, expect to win the hand
         if is_preflop:
             return self.pot
 
-        hand_strength = calculate_hand_strength(self.hand, self.river) # Note: hand will always be our (player 1's) cards
-
         # TODO: Account for p2 predicted expected hand strength
         # TODO: Account for bluffing
         # TODO: Account for aggression
         # TODO: Account for past results
-        feels_like_a_weaker_hand = hand_strength < 0.5
+        feels_like_a_weaker_hand = abs(hand_strength-opp_hand_strength) < 0.5
+        print(feels_like_a_weaker_hand,hand_strength)
 
         # If we feel that our hand is weaker, we expect to lose all that we've bet so far.
         if feels_like_a_weaker_hand:
@@ -119,8 +195,32 @@ class Node:
             opp_bluff_prob += 0.1
         if hand_strength < pred_p2_hand_strength:
             opp_bluff_prob += 0.1
-        # TODO: based on action history, we need to account how aggressively the opponent bets. account for aggression and past results.
         return opp_bluff_prob
+    
+    def opp_aggression(self):
+        """
+        opp_aggression accounts how aggressively the opponent is playing/betting throughout the game
+        return: returns the value of self.aggression 
+        """
+        # TODO: added this attribute everywhere when initializing a node in order to keep track throughout the games, 
+        # TODO: but the initialization might need to be fixed to prevent potential bugs of always being set to 0.
+        # TODO: if self.aggression is always 0 (bug), look at pokeragent.py, node.py, and tree.py.
+        prev_action = None
+        if len(self.action_history) > 0:
+            prev_action = self.action_history[-1][1]
+        # TODO: need to optimize values more appropriately for self.aggression based on the actions and how it ties to main heuristic.
+        # TODO: do we want the range from [0, 1] or [0, inf)?
+        if prev_action == 'RAISE':
+            self.aggression += 1
+        elif prev_action == 'CALL':
+            self.aggression += 0.5
+        elif prev_action == 'FOLD':
+            self.aggression -= 1
+            if self.aggression < 0:
+                self.aggression = 0
+        else:
+            self.aggression = 0
+        return self.aggression
 
     def action_helper_player(self, next, money):
         """
@@ -129,7 +229,6 @@ class Node:
         :money: money of the player
         return: returns a list of states from valid actions
         """
-
         moves = [] # List of valid states
 
         # Fold State
@@ -145,7 +244,7 @@ class Node:
             owner=self.owner,
             leaf=True,
             curr_level=self.curr_level+1,
-            action='FOLD'
+            action='FOLD',
         )))
 
         # Call State
@@ -184,7 +283,7 @@ class Node:
                 leaf=is_k,
                 curr_level=self.curr_level+1,
                 action='CALL',
-                raise_count=self.raise_count
+                raise_count=self.raise_count,
             )))
 
         # Raise State
@@ -211,7 +310,7 @@ class Node:
                 leaf=is_k,
                 curr_level=self.curr_level+1,
                 action='RAISE',
-                raise_count=self.raise_count+1
+                raise_count=self.raise_count+1,
             )))
 
         return moves
@@ -253,8 +352,8 @@ class Node:
                 owner=next,
                 leaf=is_k,
                 curr_level=self.curr_level+1,
-                action='NATURE'
-            )) for branch in valid_combinations]
+                action='NATURE',
+            ))for branch in valid_combinations]
 
         else:
             moves = [(-1, Node(
@@ -269,7 +368,7 @@ class Node:
                 owner=next,
                 leaf=is_k,
                 curr_level=self.curr_level+1,
-                action='NATURE'
-            )) for card in remaining_cards]
+                action='NATURE',
+            ))for card in remaining_cards]
 
         return moves
