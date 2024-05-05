@@ -1,7 +1,7 @@
 from .node import Node
 
 class Tree:
-    def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history, aggression):
+    def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history, aggression, raise_count=0):
         self.position = position                # 0 = Big Blind, 1 = Small Blind
         self.hand = hand                        # Hand of the player
         self.river = river                      # River Cards
@@ -14,7 +14,8 @@ class Tree:
         self.k = k                              # Game Tree depth
         self.action_history = action_history    # Action history
         self.aggression = aggression            # How aggressively is player 2 playing?
-        self.root = Node(position, hand, river, (call_amount, raise_amount), (p1Money, p2Money, pot), round, k, action_history, owner=1, action=action_history[-1][1], aggression=0) # Current State
+        self.raise_count = raise_count          # Number of raises in the round
+        self.root = Node(position, hand, river, (call_amount, raise_amount), (p1Money, p2Money, pot), round, k, action_history, owner=1, action=action_history[-1][1], aggression=0, raise_count=0) # Current State
 
 
     def pick_Action(self) -> int:
@@ -51,8 +52,16 @@ class Tree:
         if not actions:
             return state.get_utility(is_preflop=is_preflop)
 
+
         utils = [self.get_move_utility(nState, level+1) for _, nState in actions] # Recursively get the utility of future moves
-        return max(utils) if level & 1 == 0 else min(utils) # Minmax depending on owner of the node
+
+
+        if state.owner == 1:
+            return max(utils)
+        elif state.owner == 2:
+            return min(utils)
+        else:
+            return sum(utils)/len(utils)
 
 
 

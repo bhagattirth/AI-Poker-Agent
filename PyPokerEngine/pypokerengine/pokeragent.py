@@ -22,11 +22,12 @@ class PokerAgent(BasePokerPlayer):
     community_card = round_state["community_card"]                                        # River Cards
     p1_info = round_state["seats"][round_state["next_player"]]
     p2_info = round_state["seats"][1 if round_state["next_player"] == 0 else 0]
-    p1_money = p1_info["stack"]                                      # PokerAgent Money
-    p2_money = p2_info["stack"]                                      # Opponent Money
+    p1_money = p1_info["stack"]                                                           # PokerAgent Money
+    p2_money = p2_info["stack"]                                                           # Opponent Money
     pot = round_state["pot"]["main"]["amount"]                                            # Pot Amount
-    call_amount = valid_actions[1]["amount"]                                              # Call Amount
-    raise_amount = valid_actions[2]["amount"]["min"]                                      # Raise Amount
+    call_amount = 0 if valid_actions[1]["amount"] == 0 else 10                            # Call Amount
+    raise_amount = 10 if call_amount == 0 else 20                                         # Raise Amount
+    raise_count = 1 if position == 1 and round_state['action_histories'][street][-1]['action'] == 'RAISE' else 0
     k = 3                                                                                 # Depth Limit
     action_history = [(
           1 if item['uuid'] == p1_info['uuid'] else 2,
@@ -51,6 +52,7 @@ class PokerAgent(BasePokerPlayer):
       k=k,
       action_history=action_history,
       aggression=0
+      raise_count=raise_count
     )
     action = tree.pick_Action() # Returns "Optimal" move: 0 = Fold, 1 = Call, 2 = Raise
     move = valid_actions[action]
@@ -64,7 +66,7 @@ class PokerAgent(BasePokerPlayer):
     stats[-1]['decisions'].append(move["action"])
 
     if action == 2: # Raise
-      return move["action"], raise_amount
+      return move["action"], move["amount"]["min"]
 
     return move["action"], move["amount"]
 
