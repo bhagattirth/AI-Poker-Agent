@@ -2,6 +2,7 @@ from itertools import combinations
 import time
 from phevaluator.evaluator import evaluate_cards
 import numpy as np
+from math import inf
 
 def calculate_hand_strength(hand, river):
     # Given hand cards ('hand', 2 cards) and community cards ('river', up to 5 cards)
@@ -50,40 +51,84 @@ def calculate_hand_strength(hand, river):
         card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1])
         card_eval[card_value]=card_eval.get(card_value,0)+1
 
+    max_theoretical_hand_strength = 7462
     # PokerMan Value calculation
     value=0
     for i,v in card_eval.items():
-        value=value+(i*v)
-    if len(card_eval)>0:value=value/sum(card_eval.values())
-    value=(7462-value)/7462 
+        value=value+(i*v) # cumulative sum of hand strength values
+    if len(card_eval)>0:value=value/sum(card_eval.values()) # calculating mean hand strength
+    value=(max_theoretical_hand_strength-value)/max_theoretical_hand_strength # normalizing mean hand strength (NOTE: for PHE - lower score is stronger hand, so flipping relationship here)
 
     # PokerMan Variance Calculation:
     variance=0
     for i,v in card_eval.items():
-        i_norm=(7462-i)/7462 
+        i_norm=(max_theoretical_hand_strength-i)/max_theoretical_hand_strength # (NOTE: for PHE - lower score is stronger hand, so flipping relationship here)
         variance= (np.power(i_norm-value,2)*v)+variance
-    variance=np.sqrt(variance)
-    if len(card_eval)>0:variance=variance/sum(card_eval.values())
+    std_dev=np.sqrt(variance)
+    if len(card_eval)>0:std_dev=std_dev/sum(card_eval.values())
 
 
     # Opponent Value Calculation:
     opp_value=0
     for i,v in opp_eval.items():
         opp_value=opp_value+(i*v)
-    if len(opp_eval)>0:opp_value=opp_value/sum(opp_eval.values())
-    opp_value=(7462-opp_value)/7462 
+    if len(opp_eval)>0:opp_value=opp_value/sum(opp_eval.values()) # calculating mean hand strength
+    opp_value=(max_theoretical_hand_strength-opp_value)/max_theoretical_hand_strength # normalizing mean hand strength (NOTE: for PHE - lower score is stronger hand, so flipping relationship here)
 
     # Opponent Variance Calculation:
     opp_variance=0
     for i,v in opp_eval.items():
-        i_norm=(7462-i)/7462 
+        i_norm=(max_theoretical_hand_strength-i)/max_theoretical_hand_strength # (NOTE: for PHE - lower score is stronger hand, so flipping relationship here)
         opp_variance= (np.power(i_norm-opp_value,2)*v)+opp_variance
-    opp_variance=np.sqrt(opp_variance)
-    if len(opp_eval)>0:opp_variance=opp_variance/sum(opp_eval.values())
-    return value, opp_value, variance, opp_variance  
- 
+    opp_std_dev=np.sqrt(opp_variance)
+    if len(opp_eval)>0:opp_std_dev=opp_std_dev/sum(opp_eval.values())
+    return value, opp_value, std_dev, opp_std_dev
+
+def determine_victory(params, risk_level='high'):
+    # TODO: Account for bluffing
+    # TODO: Account for past results
+
+    hypers = {}
+    # critical val: determines confidence levels and is expressed as overlap between possible hand values between us and them. higher is more unlikely, 0 is exact values (mean/calc)
+    # betting power threshold: an exponential curve from (-inf, 1) where 0 => equal wealth, 1 => complete monopoly, -inf => bankruptcy
+    # round_raise_threshold: how many raises do we want to tolerate from usual (us + their raises, cumulative in this round)
+
+    hypers['zero'] = {
+        'critical_val': 2,
+        'betting_power_threshold': -inf, # ideally, we can tolerate being bankrupt if we know we will be winning this hand
+        'round_raise_threshold': inf, # ideally, we can tolerate any number of raises if we know we will be winning this hand
+    }
+
+    hypers['low'] = {
+        'critical_val': 1,
+        'betting_power_threshold': -100,
+        'round_raise_threshold': 5,
+    }
+
+    hypers['med'] = {
+        'critical_val': 0.5,
+        'betting_power_threshold': 0,
+        'round_raise_threshold': 3,
+    }
+
+    hypers['high'] = {
+        'critical_val': 0.25,
+        'betting_power_threshold': 0.5, # only risk it if we can afford to lose
+        'round_raise_threshold': 0, # only risk it if there hasn't been a raise in this round (when we cannot afford to lose)
+    }
+
+    p1_hand_strength_lower_bound = params['hand_info']['p1_hand_strength'] - hypers[risk_level]['critical_val'] * params['hand_info']['p1_hand_strength_rmse']
+    p2_hand_strength_upper_bound = params['hand_info']['p2_hand_strength'] + hypers[risk_level]['critical_val'] * params['hand_info']['p2_hand_strength_rmse']
+    return (
+            p1_hand_strength_lower_bound > p2_hand_strength_upper_bound
+            and (
+                params['relative_betting_power'] >= hypers[risk_level]['betting_power_threshold'] # either be above a comfortable wealth disparity level
+                or params['num_round_raises'] <= hypers[risk_level]['round_raise_threshold'] # or not be in a high stakes round
+            )
+    )
+
 class Node:
-    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history,owner, action, aggression=0, leaf=False, curr_level=0, raise_count=0):
+    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history,owner, action, aggression=0, leaf=False, curr_level=0, raise_count=0, p1_hand_strength=None, p2_hand_strength=None, p1_hand_strength_rmse=None, p2_hand_strength_rmse=None):
         self.position = position                # If the agent is the First Player or Second Player (0 or 1)
         self.owner = owner                      # 1 = Poker Agent, 2 = Opposing Player, 3 = Nature
         self.hand = hand                        # Hand of the Agent
@@ -102,7 +147,10 @@ class Node:
         self.action = action                    # Action which led to this node {'CALL', 'RAISE', 'FOLD', 'NATURE', 'SMALLBLIND', 'BIGBLIND'}
         self.aggression = aggression            # How aggressively is player 2 playing?
         self.raise_count = raise_count          # Number of Raises
-
+        self.p1_hand_strength = p1_hand_strength
+        self.p2_hand_strength = p2_hand_strength
+        self.p1_hand_strength_rmse = p1_hand_strength_rmse
+        self.p2_hand_strength_rmse = p2_hand_strength_rmse
 
     def get_actions(self, is_preflop=False) -> list:
         """
@@ -148,61 +196,69 @@ class Node:
         get_utility returns the utility of the current node
         return: returns the current pot (temporary)
         """
-        p1_bet_amount = sum([play[2] for play in self.action_history if play[0] == 1])
-        p2_bet_amount = sum([play[2] for play in self.action_history if play[0] == 2])
+        win_amount = self.pot
+        lose_amount = -self.pot
 
-        # If we fold, we will lose all that we've bet.
+        # params
+        params = {}
+        params['hand_info'] = {}
+        params['hand_info']['p1_hand_strength'] = self.p1_hand_strength
+        params['hand_info']['p2_hand_strength'] = self.p2_hand_strength
+        params['hand_info']['p1_hand_strength_rmse'] = self.p1_hand_strength_rmse
+        params['hand_info']['p2_hand_strength_rmse'] = self.p2_hand_strength_rmse
+        params['num_round_raises'] = len(self.action_history) - self.round * 2 # in the safest gameplay, each player only CALLs, causing rounds to end in 2 moves each
+        params['relative_betting_power'] = -inf if self.p1_money <= 0 else (self.p1_money - self.p2_money)/self.p1_money # [-inf, 1] where 1 => complete monopoly, 0 => equal wealth
+
+        # Rules
+        # If we fold, we will gain negative utility
         if self.owner == 1 and self.action == 'FOLD':
-            return -1 * p1_bet_amount
+            return lose_amount
 
-        # If they fold, we will win the pot.
+        # If they fold, we will gain positive utility
         if self.owner == 2 and self.action == 'FOLD':
-            return self.pot
+            return win_amount
 
-        # If nature controlled node, report max possible winnings
+        # If nature controlled node, report positive utility
         if self.owner == 3:
-            return self.pot
-        
-        hand_strength,opp_hand_strength, variance,opp_variance= calculate_hand_strength( self.hand, self.river) # Note: hand will always be our (player 1's) cards
+            return win_amount # TODO: Revisit this
 
-        # If preflop, expect to win the hand
-        if is_preflop:
-            return self.pot
+        # Complete victory: Our hand is stronger than anything the opponent's could be
+        if determine_victory(params=params, risk_level='zero'):
+            return win_amount
 
-        # TODO: Account for p2 predicted expected hand strength
-        # TODO: Account for bluffing
-        # TODO: Account for aggression
-        # TODO: Account for past results
-        feels_like_a_weaker_hand = abs(hand_strength-opp_hand_strength) < 0.5
-        print(feels_like_a_weaker_hand,hand_strength)
+        # Narrow risk of defeat: There is a small chance that we might have a weaker hand
+        if determine_victory(params=params, risk_level='low'):
+            return win_amount
 
-        # If we feel that our hand is weaker, we expect to lose all that we've bet so far.
-        if feels_like_a_weaker_hand:
-            return -1 * p1_bet_amount
+        # Moderate risk of defeat: There is a significant chance that either of us has the weaker hand
+        if determine_victory(params=params, risk_level='med'):
+            return win_amount
 
-        # In all other cases, we expect to win the pot
-        return self.pot
+        # High risk of defeat: There is only a small chance that we might have a stronger hand
+        if determine_victory(params=params, risk_level='high'):
+            return win_amount
+
+        # In all other cases, we expect to gain negative utility
+        return lose_amount
 
     def calculate_bluff_probability(self):
         """
         calculate_bluff_probability returns the probability of the opponent bluffing throughout the game
-        return: returns the value of opp_bluff_prob 
+        return: returns the value of opp_bluff_prob
         """
         opp_bluff_prob = 0
-        hand_strength = calculate_hand_strength(self.hand, self.river)
-        pred_p2_hand_strength = 0 # TODO: account for p2 predicted expected hand strength; i believe abstraction will be needed in this step.
         if self.p1_money < self.p2_money:
             opp_bluff_prob += 0.1
-        if hand_strength < pred_p2_hand_strength:
+        if self.p1_hand_strength < self.p2_hand_strength:
             opp_bluff_prob += 0.1
         return opp_bluff_prob
-    
+
     def opp_aggression(self):
         """
         opp_aggression accounts how aggressively the opponent is playing/betting throughout the game
-        return: returns the value of self.aggression 
+        return: returns the value of self.aggression
         """
-        # TODO: added this attribute everywhere when initializing a node in order to keep track throughout the games, 
+        # TODO: added this attribute everywhere when initializing a node in order to keep track throughout the games,
         # TODO: but the initialization might need to be fixed to prevent potential bugs of always being set to 0.
         # TODO: if self.aggression is always 0 (bug), look at pokeragent.py, node.py, and tree.py.
         prev_action = None
@@ -245,6 +301,10 @@ class Node:
             leaf=True,
             curr_level=self.curr_level+1,
             action='FOLD',
+            p1_hand_strength=self.p1_hand_strength,
+            p2_hand_strength=self.p2_hand_strength,
+            p1_hand_strength_rmse=self.p1_hand_strength_rmse,
+            p2_hand_strength_rmse=self.p2_hand_strength_rmse,
         )))
 
         # Call State
@@ -284,6 +344,10 @@ class Node:
                 curr_level=self.curr_level+1,
                 action='CALL',
                 raise_count=self.raise_count,
+                p1_hand_strength=self.p1_hand_strength,
+                p2_hand_strength=self.p2_hand_strength,
+                p1_hand_strength_rmse=self.p1_hand_strength_rmse,
+                p2_hand_strength_rmse=self.p2_hand_strength_rmse,
             )))
 
         # Raise State
@@ -311,6 +375,10 @@ class Node:
                 curr_level=self.curr_level+1,
                 action='RAISE',
                 raise_count=self.raise_count+1,
+                p1_hand_strength=self.p1_hand_strength,
+                p2_hand_strength=self.p2_hand_strength,
+                p1_hand_strength_rmse=self.p1_hand_strength_rmse,
+                p2_hand_strength_rmse=self.p2_hand_strength_rmse,
             )))
 
         return moves
@@ -338,37 +406,52 @@ class Node:
         remaining_cards = [card for card in all_cards if card not in self.hand and card not in self.river] # Remaining cards that are not on hand or river
 
         # Remaining cards Choose 3 cards states
+        moves = []
         if num_cards == 3:
             valid_combinations = list(combinations(remaining_cards, num_cards))
-            moves = [(-1, Node(
-                position=self.position,
-                hand=self.hand,
-                river=list(branch),
-                betting_amount=self.betting_amount,
-                player_money=[self.p1_money, self.p2_money, self.pot],
-                round=self.round,
-                k=self.k,
-                action_history=[*self.action_history],
-                owner=next,
-                leaf=is_k,
-                curr_level=self.curr_level+1,
-                action='NATURE',
-            ))for branch in valid_combinations]
+            for branch in valid_combinations:
+                p1_hand_strength, p2_hand_strength, p1_hand_strength_rmse, p2_hand_strength_rmse = calculate_hand_strength(self.hand, branch) # Note: hand will always be our (player 1's) cards
+
+                moves.append((-1, Node(
+                    position=self.position,
+                    hand=self.hand,
+                    river=list(branch),
+                    betting_amount=self.betting_amount,
+                    player_money=[self.p1_money, self.p2_money, self.pot],
+                    round=self.round,
+                    k=self.k,
+                    action_history=[*self.action_history],
+                    owner=next,
+                    leaf=is_k,
+                    curr_level=self.curr_level+1,
+                    action='NATURE',
+                    p1_hand_strength=p1_hand_strength,
+                    p2_hand_strength=p2_hand_strength,
+                    p1_hand_strength_rmse=p1_hand_strength_rmse,
+                    p2_hand_strength_rmse=p2_hand_strength_rmse,
+                )))
 
         else:
-            moves = [(-1, Node(
-                position=self.position,
-                hand=self.hand,
-                river=self.river + [card],
-                betting_amount=self.betting_amount,
-                player_money=[self.p1_money, self.p2_money, self.pot],
-                round=self.round,
-                k=self.k,
-                action_history=[*self.action_history],
-                owner=next,
-                leaf=is_k,
-                curr_level=self.curr_level+1,
-                action='NATURE',
-            ))for card in remaining_cards]
+            for card in remaining_cards:
+                p1_hand_strength, p2_hand_strength, p1_hand_strength_rmse, p2_hand_strength_rmse = calculate_hand_strength(self.hand, self.river + [card]) # Note: hand will always be our (player 1's) cards
+
+                moves.append((-1, Node(
+                    position=self.position,
+                    hand=self.hand,
+                    river=self.river + [card],
+                    betting_amount=self.betting_amount,
+                    player_money=[self.p1_money, self.p2_money, self.pot],
+                    round=self.round,
+                    k=self.k,
+                    action_history=[*self.action_history],
+                    owner=next,
+                    leaf=is_k,
+                    curr_level=self.curr_level+1,
+                    action='NATURE',
+                    p1_hand_strength=p1_hand_strength,
+                    p2_hand_strength=p2_hand_strength,
+                    p1_hand_strength_rmse=p1_hand_strength_rmse,
+                    p2_hand_strength_rmse=p2_hand_strength_rmse,
+                )))
 
         return moves

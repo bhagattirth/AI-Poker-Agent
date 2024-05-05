@@ -1,4 +1,4 @@
-from .node import Node
+from .node import Node, calculate_hand_strength
 
 class Tree:
     def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history, aggression, raise_count=0):
@@ -15,7 +15,26 @@ class Tree:
         self.action_history = action_history    # Action history
         self.aggression = aggression            # How aggressively is player 2 playing?
         self.raise_count = raise_count          # Number of raises in the round
-        self.root = Node(position, hand, river, (call_amount, raise_amount), (p1Money, p2Money, pot), round, k, action_history, owner=1, action=action_history[-1][1], aggression=0, raise_count=0) # Current State
+
+        p1_hand_strength, p2_hand_strength, p1_hand_strength_rmse, p2_hand_strength_rmse = calculate_hand_strength(self.hand, self.river) # Note: hand will always be our (player 1's) cards
+        self.root = Node(
+            position=position,
+            hand=hand,
+            river=river,
+            betting_amount=(call_amount, raise_amount),
+            player_money=(p1Money, p2Money, pot),
+            round=round,
+            k=k,
+            action_history=action_history,
+            owner=1,
+            action=action_history[-1][1],
+            aggression=0,
+            raise_count=0,
+            p1_hand_strength=p1_hand_strength,
+            p2_hand_strength=p2_hand_strength,
+            p1_hand_strength_rmse=p1_hand_strength_rmse,
+            p2_hand_strength_rmse=p2_hand_strength_rmse,
+        ) # Current State
 
 
     def pick_Action(self) -> int:
