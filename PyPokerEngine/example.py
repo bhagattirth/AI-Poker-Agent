@@ -7,13 +7,13 @@ from pypokerengine.pokeragent import PokerAgent
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--num_rounds', type=int, default=50)
+parser.add_argument('--rounds', type=int, default=50)
 parser.add_argument('--stack', type=int, default=1000)
 parser.add_argument('--interactive', '-i', action='store_true')
 args = parser.parse_args()
 
 #TODO:config the config as our wish
-config = setup_config(max_round=args.num_rounds, initial_stack=args.stack, small_blind_amount=10)
+config = setup_config(max_round=args.rounds, initial_stack=args.stack, small_blind_amount=10)
 
 
 

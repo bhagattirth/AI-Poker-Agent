@@ -74,7 +74,7 @@ class PokerAgent(BasePokerPlayer):
       'decisions': [],
       'outcome': None
     })
-    print(f'\n\n-+-+-[Round {len(stats) + 1}]-+-+-\n')
+    print(f'\n\n-+-+-[Round {len(stats)}]-+-+-\n')
     print("Cards in hand: ", hole_card)
 
   def receive_street_start_message(self, street, round_state):
