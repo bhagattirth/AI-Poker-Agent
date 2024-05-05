@@ -83,7 +83,7 @@ def calculate_hand_strength(hand, river):
     return value, opp_value, variance, opp_variance  
  
 class Node:
-    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history,owner, action, aggression=0, leaf=False, curr_level=0, , raise_count=0):
+    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history,owner, action, aggression=0, leaf=False, curr_level=0, raise_count=0):
         self.position = position                # If the agent is the First Player or Second Player (0 or 1)
         self.owner = owner                      # 1 = Poker Agent, 2 = Opposing Player, 3 = Nature
         self.hand = hand                        # Hand of the Agent
