@@ -2,6 +2,7 @@ from itertools import combinations
 import time
 from phevaluator.evaluator import evaluate_cards
 import numpy as np
+from math import inf
 
 def calculate_hand_strength(hand, river):
     # Given hand cards ('hand', 2 cards) and community cards ('river', up to 5 cards)
@@ -83,6 +84,49 @@ def calculate_hand_strength(hand, river):
     if len(opp_eval)>0:opp_std_dev=opp_std_dev/sum(opp_eval.values())
     return value, opp_value, std_dev, opp_std_dev
 
+def determine_victory(params, risk_level='high'):
+    # TODO: Account for bluffing
+    # TODO: Account for past results
+
+    hypers = {}
+    # critical val: determines confidence levels and is expressed as overlap between possible hand values between us and them. higher is more unlikely, 0 is exact values (mean/calc)
+    # betting power threshold: an exponential curve from (-inf, 1) where 0 => equal wealth, 1 => complete monopoly, -inf => bankruptcy
+    # round_raise_threshold: how many raises do we want to tolerate from usual (us + their raises, cumulative in this round)
+
+    hypers['zero'] = {
+        'critical_val': 2,
+        'betting_power_threshold': -inf, # ideally, we can tolerate being bankrupt if we know we will be winning this hand
+        'round_raise_threshold': inf, # ideally, we can tolerate any number of raises if we know we will be winning this hand
+    }
+
+    hypers['low'] = {
+        'critical_val': 1,
+        'betting_power_threshold': -100,
+        'round_raise_threshold': 5,
+    }
+
+    hypers['med'] = {
+        'critical_val': 0.5,
+        'betting_power_threshold': 0,
+        'round_raise_threshold': 3,
+    }
+
+    hypers['high'] = {
+        'critical_val': 0.25,
+        'betting_power_threshold': 0.5, # only risk it if we can afford to lose
+        'round_raise_threshold': 0, # only risk it if there hasn't been a raise in this round (when we cannot afford to lose)
+    }
+
+    p1_hand_strength_lower_bound = params['hand_info']['p1_hand_strength'] - hypers[risk_level]['critical_val'] * params['hand_info']['p1_hand_strength_rmse']
+    p2_hand_strength_upper_bound = params['hand_info']['p2_hand_strength'] + hypers[risk_level]['critical_val'] * params['hand_info']['p2_hand_strength_rmse']
+    return (
+            p1_hand_strength_lower_bound > p2_hand_strength_upper_bound
+            and (
+                params['relative_betting_power'] >= hypers[risk_level]['betting_power_threshold'] # either be above a comfortable wealth disparity level
+                or params['num_round_raises'] <= hypers[risk_level]['round_raise_threshold'] # or not be in a high stakes round
+            )
+    )
+
 class Node:
     def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history,owner, action, aggression=0, leaf=False, curr_level=0, raise_count=0, p1_hand_strength=None, p2_hand_strength=None, p1_hand_strength_rmse=None, p2_hand_strength_rmse=None):
         self.position = position                # If the agent is the First Player or Second Player (0 or 1)
@@ -152,13 +196,20 @@ class Node:
         get_utility returns the utility of the current node
         return: returns the current pot (temporary)
         """
-        # p1_bet_amount = sum([play[2] for play in self.action_history if play[0] == 1])
-        # p2_bet_amount = sum([play[2] for play in self.action_history if play[0] == 2])
-
         win_amount = self.pot
         lose_amount = -self.pot
-        # lose_amount = -1 * p1_bet_amount
 
+        # params
+        params = {}
+        params['hand_info'] = {}
+        params['hand_info']['p1_hand_strength'] = self.p1_hand_strength
+        params['hand_info']['p2_hand_strength'] = self.p2_hand_strength
+        params['hand_info']['p1_hand_strength_rmse'] = self.p1_hand_strength_rmse
+        params['hand_info']['p2_hand_strength_rmse'] = self.p2_hand_strength_rmse
+        params['num_round_raises'] = len(self.action_history) - self.round * 2 # in the safest gameplay, each player only CALLs, causing rounds to end in 2 moves each
+        params['relative_betting_power'] = -inf if self.p1_money <= 0 else (self.p1_money - self.p2_money)/self.p1_money # [-inf, 1] where 1 => complete monopoly, 0 => equal wealth
+
+        # Rules
         # If we fold, we will gain negative utility
         if self.owner == 1 and self.action == 'FOLD':
             return lose_amount
@@ -169,63 +220,26 @@ class Node:
 
         # If nature controlled node, report positive utility
         if self.owner == 3:
-            return win_amount
+            return win_amount # TODO: Revisit this
 
-        # If preflop, expect to gain positive utility
-        if is_preflop:
-            # TODO: flesh this out
-            return win_amount
-
-        # TODO: Account for bluffing
-        # TODO: Account for aggression
-        # TODO: Account for past results
-
-        critical_value = 2
         # Complete victory: Our hand is stronger than anything the opponent's could be
-        if self.p1_hand_strength - critical_value*self.p1_hand_strength_rmse > self.p2_hand_strength + critical_value*self.p2_hand_strength_rmse:
+        if determine_victory(params=params, risk_level='zero'):
             return win_amount
 
-        # Complete defeat: Our hand is weaker than anything the opponent's could be (99.99% confidence)
-        if self.p2_hand_strength - critical_value*self.p2_hand_strength_rmse > self.p1_hand_strength + critical_value*self.p1_hand_strength_rmse:
-            return lose_amount
-
-        critical_value = 1
         # Narrow risk of defeat: There is a small chance that we might have a weaker hand
-        if (
-            self.p1_hand_strength - critical_value*self.p1_hand_strength_rmse > self.p2_hand_strength + critical_value*self.p2_hand_strength_rmse
-            and 1==1
-        ):
+        if determine_victory(params=params, risk_level='low'):
             return win_amount
 
-        # Narrow chance of victory: There is a small chance that we might have a stronger hand
-        if (
-            self.p2_hand_strength - critical_value*self.p2_hand_strength_rmse > self.p1_hand_strength + critical_value*self.p1_hand_strength_rmse
-            and 1==1
-        ):
-            return lose_amount
-
-        critical_value = 0.5
-        # Moderate risk of defeat: There is a significant chance that we might have a weaker hand
-        if (
-            self.p1_hand_strength - critical_value*self.p1_hand_strength_rmse > self.p2_hand_strength + critical_value*self.p2_hand_strength_rmse
-            and 1==1
-        ):
+        # Moderate risk of defeat: There is a significant chance that either of us has the weaker hand
+        if determine_victory(params=params, risk_level='med'):
             return win_amount
 
-        # Moderate chance of victory: There is a significant chance that we might have a stronger hand
-        if (
-            self.p2_hand_strength - critical_value*self.p2_hand_strength_rmse > self.p1_hand_strength + critical_value*self.p1_hand_strength_rmse
-            and 1==1
-        ):
-            return lose_amount
+        # High risk of defeat: There is only a small chance that we might have a stronger hand
+        if determine_victory(params=params, risk_level='high'):
+            return win_amount
 
-        # Ambiguity: There is no clear outcome that we can discern based off expected hand strengths
-        # If we feel that our hand is weaker, we expect to gain negative utility
-        if self.p1_hand_strength < self.p2_hand_strength:
-            return lose_amount
-
-        # In all other cases, we expect to gain positive utility
-        return win_amount
+        # In all other cases, we expect to gain negative utility
+        return lose_amount
 
     def calculate_bluff_probability(self):
         """
