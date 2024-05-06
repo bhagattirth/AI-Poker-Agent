@@ -3,9 +3,17 @@ from .pokerAgent.tree import Tree
 from .pokerAgent.node import calculate_hand_strength
 from time import time
 from statistics import variance
+import numpy as np
 
 stats = []
+
+starting_stack = 0
+raising_odds = 1
+call_odds = 1
+raise_odds = 1
+sum_val = 3
 stack_history = []
+
 
 class PokerAgent(BasePokerPlayer):
   def declare_action(self, valid_actions, hole_card, round_state):
@@ -29,13 +37,41 @@ class PokerAgent(BasePokerPlayer):
     pot = round_state["pot"]["main"]["amount"]                                            # Pot Amount
     call_amount = 0 if valid_actions[1]["amount"] == 0 else 10                            # Call Amount
     raise_amount = 10 if call_amount == 0 else 20                                         # Raise Amount
-    raise_count = 1 if position == 1 and round_state['action_histories'][street][-1]['action'] == 'RAISE' else 0
+    raise_count = 0
+
+    for item in round_state['action_histories'][street]:
+      if item['action'] == 'RAISE':
+        raise_count += 1
+
     k = 3                                                                                 # Depth Limit
     action_history = [(
           1 if item['uuid'] == p1_info['uuid'] else 2,
           item['action'],
           item['paid'] if 'paid' in item else item['add_amount']
       ) for (k,v) in round_state['action_histories'].items() for item in v]               # Action History
+
+    global raising_odds
+    global call_odds
+    global raise_odds
+    global sum_val
+
+    last_actions = action_history[-1]
+    if last_actions[1] == 'RAISE' and last_actions[0] == 2:
+      raise_odds += 1
+      sum_val += 1
+    elif last_actions[1] == 'CALL' and last_actions[0] == 2:
+      call_odds += 1
+      sum_val += 1
+    elif last_actions[1] == 'RAISE' and last_actions[0] == 1:
+      raising_odds += 1
+      sum_val += 1
+
+    p2_dist = np.array([raising_odds/(sum_val), call_odds/(sum_val), raise_odds/(sum_val)])
+
+    # p2_dist = np.array([raising_odds/(raising_odds + call_odds + raise_odds + 3), 
+    #            call_odds/(raising_odds + call_odds + raise_odds + 3), 
+    #            raise_odds/(raising_odds + call_odds + raise_odds + 3)])
+    
 
     tree = Tree(
       position=position,
@@ -51,6 +87,7 @@ class PokerAgent(BasePokerPlayer):
       action_history=action_history,
       aggression=0,
       raise_count=raise_count,
+      p2_dist=p2_dist
     )
     action = tree.pick_Action() # Returns "Optimal" move: 0 = Fold, 1 = Call, 2 = Raise
     move = valid_actions[action]
