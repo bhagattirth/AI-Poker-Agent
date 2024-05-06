@@ -94,25 +94,25 @@ def determine_victory(params, risk_level='high'):
     # round_raise_threshold: how many raises do we want to tolerate from usual (us + their raises, cumulative in this round)
 
     hypers['zero'] = {
-        'critical_val': 2,
+        'critical_val': 0.5, # tuned from 2 to 0.5 for a relatively tight interval where the overlap between the hands' values is minimal 
         'betting_power_threshold': -inf, # ideally, we can tolerate being bankrupt if we know we will be winning this hand
         'round_raise_threshold': inf, # ideally, we can tolerate any number of raises if we know we will be winning this hand
     }
 
     hypers['low'] = {
-        'critical_val': 1,
+        'critical_val': 0.25, # tuned from 1 to 0.25 for a slightly wider confidence interval, indicating low, yet meaningful risk
         'betting_power_threshold': -100,
         'round_raise_threshold': 5,
     }
 
     hypers['med'] = {
-        'critical_val': 0.5,
+        'critical_val': 0.15, # tuned from 0.5 to 0.15 for a medium-level risk, creating a broader sense of the confidence interval
         'betting_power_threshold': 0,
         'round_raise_threshold': 3,
     }
 
     hypers['high'] = {
-        'critical_val': 0.25,
+        'critical_val': 0.1, # tuned from 0.25 to 0.1 to signify high risk and the large range of different outcomes
         'betting_power_threshold': 0.5, # only risk it if we can afford to lose
         'round_raise_threshold': 0, # only risk it if there hasn't been a raise in this round (when we cannot afford to lose)
     }
@@ -145,7 +145,6 @@ class Node:
         self.curr_level = curr_level            # Current level of the tree
         self.action_history = action_history    # Action History
         self.action = action                    # Action which led to this node {'CALL', 'RAISE', 'FOLD', 'NATURE', 'SMALLBLIND', 'BIGBLIND'}
-        self.aggression = aggression            # How aggressively is player 2 playing?
         self.raise_count = raise_count          # Number of Raises
         self.p1_hand_strength = p1_hand_strength
         self.p2_hand_strength = p2_hand_strength
@@ -252,31 +251,6 @@ class Node:
         if self.p1_hand_strength < self.p2_hand_strength:
             opp_bluff_prob += 0.1
         return opp_bluff_prob
-
-    def opp_aggression(self):
-        """
-        opp_aggression accounts how aggressively the opponent is playing/betting throughout the game
-        return: returns the value of self.aggression
-        """
-        # TODO: added this attribute everywhere when initializing a node in order to keep track throughout the games,
-        # TODO: but the initialization might need to be fixed to prevent potential bugs of always being set to 0.
-        # TODO: if self.aggression is always 0 (bug), look at pokeragent.py, node.py, and tree.py.
-        prev_action = None
-        if len(self.action_history) > 0:
-            prev_action = self.action_history[-1][1]
-        # TODO: need to optimize values more appropriately for self.aggression based on the actions and how it ties to main heuristic.
-        # TODO: do we want the range from [0, 1] or [0, inf)?
-        if prev_action == 'RAISE':
-            self.aggression += 1
-        elif prev_action == 'CALL':
-            self.aggression += 0.5
-        elif prev_action == 'FOLD':
-            self.aggression -= 1
-            if self.aggression < 0:
-                self.aggression = 0
-        else:
-            self.aggression = 0
-        return self.aggression
 
     def action_helper_player(self, next, money):
         """

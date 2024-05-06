@@ -49,7 +49,6 @@ class PokerAgent(BasePokerPlayer):
       round=round,
       k=k,
       action_history=action_history,
-      aggression=0,
       raise_count=raise_count,
     )
     action = tree.pick_Action() # Returns "Optimal" move: 0 = Fold, 1 = Call, 2 = Raise

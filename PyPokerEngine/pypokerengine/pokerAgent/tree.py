@@ -13,7 +13,6 @@ class Tree:
         self.round = round                      # Round Number
         self.k = k                              # Game Tree depth
         self.action_history = action_history    # Action history
-        self.aggression = aggression            # How aggressively is player 2 playing?
         self.raise_count = raise_count          # Number of raises in the round
 
         p1_hand_strength, p2_hand_strength, p1_hand_strength_rmse, p2_hand_strength_rmse = calculate_hand_strength(self.hand, self.river) # Note: hand will always be our (player 1's) cards
