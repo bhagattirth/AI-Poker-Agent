@@ -1,7 +1,7 @@
 from .node import Node, calculate_hand_strength
 
 class Tree:
-    def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history, aggression, raise_count=0):
+    def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history, raise_count=0):
         self.position = position                # 0 = Big Blind, 1 = Small Blind
         self.hand = hand                        # Hand of the player
         self.river = river                      # River Cards
@@ -27,7 +27,6 @@ class Tree:
             action_history=action_history,
             owner=1,
             action=action_history[-1][1],
-            aggression=0,
             raise_count=0,
             p1_hand_strength=p1_hand_strength,
             p2_hand_strength=p2_hand_strength,
