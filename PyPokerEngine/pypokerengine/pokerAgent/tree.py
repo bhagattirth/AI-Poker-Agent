@@ -1,21 +1,10 @@
 from .node import Node, calculate_hand_strength
 
 class Tree:
-    def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history, raise_count=0):
-        self.position = position                # 0 = Big Blind, 1 = Small Blind
-        self.hand = hand                        # Hand of the player
-        self.river = river                      # River Cards
-        self.CALL_AMOUNT = call_amount          # Amount to call
-        self.RAISE_AMOUNT = raise_amount        # Raise Amount
-        self.p1 = p1Money                       # Player 1 Money
-        self.p2 = p2Money                       # Player 2 Money
-        self.pot = pot                          # Pot
-        self.round = round                      # Round Number
-        self.k = k                              # Game Tree depth
-        self.action_history = action_history    # Action history
-        self.raise_count = raise_count          # Number of raises in the round
+    def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history, raise_count=0, p2_dist=[1,1,1]):
+        self.round = round                      
 
-        p1_hand_strength, p2_hand_strength, p1_hand_strength_rmse, p2_hand_strength_rmse = calculate_hand_strength(self.hand, self.river) # Note: hand will always be our (player 1's) cards
+        p1_hand_strength, p2_hand_strength, p1_hand_strength_rmse, p2_hand_strength_rmse = calculate_hand_strength(hand, river) # Note: hand will always be our (player 1's) cards
         self.root = Node(
             position=position,
             hand=hand,
@@ -27,11 +16,12 @@ class Tree:
             action_history=action_history,
             owner=1,
             action=action_history[-1][1],
-            raise_count=0,
+            raise_count=raise_count,
             p1_hand_strength=p1_hand_strength,
             p2_hand_strength=p2_hand_strength,
             p1_hand_strength_rmse=p1_hand_strength_rmse,
             p2_hand_strength_rmse=p2_hand_strength_rmse,
+            p2_dist=p2_dist
         ) # Current State
 
 
@@ -60,7 +50,7 @@ class Tree:
         return: returns the utility of the move
         """
         is_preflop = self.round == 1
-
+        # print(state.weight)
         if state.is_leaf_node():    # If the state is a terminal node return the utility of the state
             return state.get_utility(is_preflop=is_preflop)
 
@@ -70,13 +60,13 @@ class Tree:
             return state.get_utility(is_preflop=is_preflop)
 
 
-        utils = [self.get_move_utility(nState, level+1) for _, nState in actions] # Recursively get the utility of future moves
-
+        utils = [nState.weight * self.get_move_utility(nState, level+1) for _, nState in actions] # Recursively get the utility of future moves
+        
 
         if state.owner == 1:
             return max(utils)
         elif state.owner == 2:
-            return min(utils)
+            return sum(utils)/len(utils)
         else:
             return sum(utils)/len(utils)
 

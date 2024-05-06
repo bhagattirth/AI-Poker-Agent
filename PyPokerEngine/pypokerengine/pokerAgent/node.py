@@ -128,7 +128,7 @@ def determine_victory(params, risk_level='high'):
     )
 
 class Node:
-    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history,owner, action, leaf=False, curr_level=0, raise_count=0, p1_hand_strength=None, p2_hand_strength=None, p1_hand_strength_rmse=None, p2_hand_strength_rmse=None):
+    def __init__(self, position, hand, river, betting_amount, player_money, round, k, action_history,owner, action, leaf=False, curr_level=0, raise_count=0, p1_hand_strength=None, p2_hand_strength=None, p1_hand_strength_rmse=None, p2_hand_strength_rmse=None, p2_dist=None, weight=1):
         self.position = position                # If the agent is the First Player or Second Player (0 or 1)
         self.owner = owner                      # 1 = Poker Agent, 2 = Opposing Player, 3 = Nature
         self.hand = hand                        # Hand of the Agent
@@ -150,6 +150,8 @@ class Node:
         self.p2_hand_strength = p2_hand_strength
         self.p1_hand_strength_rmse = p1_hand_strength_rmse
         self.p2_hand_strength_rmse = p2_hand_strength_rmse
+        self.dist = p2_dist                     # Probability distribution of player 2's actions
+        self.weight = weight                    # Weight of the node
 
     def get_actions(self, is_preflop=False) -> list:
         """
@@ -260,7 +262,7 @@ class Node:
         return: returns a list of states from valid actions
         """
         moves = [] # List of valid states
-
+        missing_index = [1, 2]
         # Fold State
         moves.append((0, Node(
             position=self.position,
@@ -279,6 +281,7 @@ class Node:
             p2_hand_strength=self.p2_hand_strength,
             p1_hand_strength_rmse=self.p1_hand_strength_rmse,
             p2_hand_strength_rmse=self.p2_hand_strength_rmse,
+            p2_dist=self.dist
         )))
 
         # Call State
@@ -322,7 +325,10 @@ class Node:
                 p2_hand_strength=self.p2_hand_strength,
                 p1_hand_strength_rmse=self.p1_hand_strength_rmse,
                 p2_hand_strength_rmse=self.p2_hand_strength_rmse,
+                p2_dist=self.dist,
             )))
+
+            missing_index.remove(1)
 
         # Raise State
         if  money >= self.raise_amount and self.raise_count <= 4:
@@ -353,7 +359,20 @@ class Node:
                 p2_hand_strength=self.p2_hand_strength,
                 p1_hand_strength_rmse=self.p1_hand_strength_rmse,
                 p2_hand_strength_rmse=self.p2_hand_strength_rmse,
+                p2_dist=self.dist
             )))
+            missing_index.remove(2)
+        
+        if self.owner == 2:
+            if len(missing_index) != 0:
+                change_distibution = self.dist.copy()
+                unavailable = change_distibution[missing_index].sum()
+                change_distibution[missing_index] = 0
+                change_distibution += unavailable*change_distibution / change_distibution.sum()
+                self.dist = change_distibution
+            for state in moves:
+                state[1].dist = self.dist
+                state[1].weight = self.dist[state[0]]
 
         return moves
 
@@ -403,6 +422,7 @@ class Node:
                     p2_hand_strength=p2_hand_strength,
                     p1_hand_strength_rmse=p1_hand_strength_rmse,
                     p2_hand_strength_rmse=p2_hand_strength_rmse,
+                    p2_dist=self.dist
                 )))
 
         else:
@@ -426,6 +446,7 @@ class Node:
                     p2_hand_strength=p2_hand_strength,
                     p1_hand_strength_rmse=p1_hand_strength_rmse,
                     p2_hand_strength_rmse=p2_hand_strength_rmse,
+                    p2_dist=self.dist
                 )))
 
         return moves
