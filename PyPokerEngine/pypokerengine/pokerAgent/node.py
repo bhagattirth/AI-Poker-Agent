@@ -170,19 +170,7 @@ class Node:
         elif self.owner == 2 and self.position == 1:            # If the opponent plays second
             return self.action_helper_player(1, self.p2_money)
 
-        # if self.owner == 1:             # If the pokeragent plays first
-        #     return self.action_helper_player(self.p1_money)
-        # elif:
-        #     return self.action_helper_player(self.p2_money) #t
-
-        if is_preflop:
-            return None
-
-        if self.owner == 3 and self.position == 0:            # Natures Turn and next player is the pokeragent
-            return self.action_helper_nature(1)
-        else:
-            return self.action_helper_nature(2)                 # Natures Turn and next player is the opponent
-
+        return None
 
     def is_leaf_node(self) -> bool:
         """
