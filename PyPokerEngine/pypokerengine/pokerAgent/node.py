@@ -94,21 +94,21 @@ def determine_victory(params, risk_level='high'):
     # round_raise_threshold: how many raises do we want to tolerate from usual (us + their raises, cumulative in this round)
 
     hypers['zero'] = {
-        'critical_val': 0.5, # tuned from 2 to 0.5 for a relatively tight interval where the overlap between the hands' values is minimal 
+        'critical_val': 1, # tuned from 2 to 0.5 for a relatively tight interval where the overlap between the hands' values is minimal 
         'betting_power_threshold': -inf, # ideally, we can tolerate being bankrupt if we know we will be winning this hand
         'round_raise_threshold': inf, # ideally, we can tolerate any number of raises if we know we will be winning this hand
     }
 
     hypers['low'] = {
-        'critical_val': 0.25, # tuned from 1 to 0.25 for a slightly wider confidence interval, indicating low, yet meaningful risk
+        'critical_val': 0.33, # tuned from 1 to 0.25 for a slightly wider confidence interval, indicating low, yet meaningful risk
         'betting_power_threshold': -100,
         'round_raise_threshold': 5,
     }
 
     hypers['med'] = {
-        'critical_val': 0.15, # tuned from 0.5 to 0.15 for a medium-level risk, creating a broader sense of the confidence interval
-        'betting_power_threshold': 0,
-        'round_raise_threshold': 3,
+        'critical_val': 0.25, # tuned from 0.5 to 0.15 for a medium-level risk, creating a broader sense of the confidence interval
+        'betting_power_threshold': 0, # we should have as much money as them to risk this
+        'round_raise_threshold': 3, # Or we must not stand to lose a lot of money to risk this
     }
 
     hypers['high'] = {
@@ -208,7 +208,7 @@ class Node:
         params['hand_info']['p1_hand_strength_rmse'] = self.p1_hand_strength_rmse
         params['hand_info']['p2_hand_strength_rmse'] = self.p2_hand_strength_rmse
         params['num_round_raises'] = len(self.action_history) - self.round * 2 # in the safest gameplay, each player only CALLs, causing rounds to end in 2 moves each
-        params['relative_betting_power'] = -inf if self.p1_money <= 0 else (self.p1_money - self.p2_money)/self.p1_money # [-inf, 1] where 1 => complete monopoly, 0 => equal wealth
+        params['relative_betting_power'] = -inf if self.p1_money <= 0 else (self.p1_money - self.p2_money)/self.p1_money # (-inf, 1] where 1 => complete monopoly, 0 => equal wealth
 
         # Rules
         # If we fold, we will gain negative utility

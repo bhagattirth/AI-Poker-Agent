@@ -4,6 +4,7 @@ from .pokerAgent.node import calculate_hand_strength
 from time import time
 from statistics import variance
 import numpy as np
+import pickle
 
 stats = []
 
@@ -16,6 +17,14 @@ stack_history = []
 
 
 class PokerAgent(BasePokerPlayer):
+  def __init__(self, verbose=False):
+    super().__init__()
+    self.verbose = verbose
+  
+  def print(self, *args):
+    if self.verbose:
+      print(*args)
+
   def declare_action(self, valid_actions, hole_card, round_state):
     start = time()
     position = 0 if round_state["next_player"] == round_state["small_blind_pos"] else 1 # 0 = Small Blind, 1 = Big Blind
@@ -95,8 +104,7 @@ class PokerAgent(BasePokerPlayer):
     end = time()
     print("Time taken: ", end - start)
 
-    ## REMOVE THE BELOW BLOCK
-    stats[-1]['time_taken'].append(end - start)
+    stats[-1]['time_taken'] = end - start
     stats[-1]['decisions'].append(move["action"])
 
     if action == 2: # Raise
@@ -110,17 +118,18 @@ class PokerAgent(BasePokerPlayer):
 
   def receive_round_start_message(self, round_count, hole_card, seats):
     stats.append({
-      'time_taken': [],
+      'time_taken': None,
       'decisions': [],
       'outcome': None,
       'hand': hole_card,
+      'stack': None,
     })
 
     print(f'\n\n-+-+-[Round {round_count}]-+-+-\n')
-    print("Cards in hand: ", hole_card)
+    self.print("Cards in hand: ", hole_card)
 
   def receive_street_start_message(self, street, round_state):
-    print(f'\n--[{street}]--')
+    self.print(f'\n--[{street}]--')
 
   def receive_game_update_message(self, action, round_state):
     pass
@@ -129,6 +138,7 @@ class PokerAgent(BasePokerPlayer):
     stats[-1]['outcome'] = winners[0]['name'] == 'PokerMan'
     stats[-1]['river'] = round_state['community_card']
     stack_history.append([seat['stack'] for seat in round_state['seats'] if seat['name'] == 'PokerMan'][0])
+    stats[-1]['stack'] = stack_history[-1]
 
     p1_hand_str, p2_hand_str, _, p2_hand_str_rmse = calculate_hand_strength(stats[-1]['hand'], stats[-1]['river'])
     stats[-1]['hand_strength'] = p1_hand_str
@@ -141,12 +151,19 @@ class PokerAgent(BasePokerPlayer):
           item['paid'] if 'paid' in item else item['add_amount'] if 'add_amount' in item else 0.0
       ) for (k,v) in round_state['action_histories'].items() for item in v]
 
-    print(f"\nHand strength this round\n  Ours: {stats[-1]['hand_strength']}\nTheirs: {stats[-1]['opp_hand_strength']} (rmse: {stats[-1]['opp_hand_strength_rmse']})")
-    print(f"\nPlay this round (player, move, amount added) => {action_history}")
+    self.print(f"\nHand strength this round\n  Ours: {stats[-1]['hand_strength']}\nTheirs: {stats[-1]['opp_hand_strength']} (rmse: {stats[-1]['opp_hand_strength_rmse']})")
+    self.print(f"\nPlay this round (player, move, amount added) => {action_history}")
+    self.print(f"\nWe've earned ${stack_history[-1] - stack_history[0]} so far!")
 
     outcomes = [stat['outcome'] for stat in stats]
     winnings = [stack_history[idx + 1] - stack_history[idx] for idx, outcome in enumerate(outcomes) if outcome]
     losses = [stack_history[idx + 1] - stack_history[idx] for idx, outcome in enumerate(outcomes) if not outcome]
+
+    self.print(f"Average Winnings: ${(sum(winnings)/len(winnings)) if len(winnings) else 0.0} in {len(winnings)} rounds (higher is better)")
+    self.print(f"Average Losses: ${(sum(losses)/len(losses)) if len(losses) else 0.0} in {len(losses)} rounds (lower is better)")
+  
+  def report_stats(self):
+    outcomes = [stat['outcome'] for stat in stats]
 
     won_rounds_hand_strengths = [stats[idx]['hand_strength'] for idx, outcome in enumerate(outcomes) if outcome]
     won_rounds_opp_hand_strengths = [stats[idx]['opp_hand_strength'] for idx, outcome in enumerate(outcomes) if outcome]
@@ -154,10 +171,6 @@ class PokerAgent(BasePokerPlayer):
     lost_rounds_hand_strengths = [stats[idx]['hand_strength'] for idx, outcome in enumerate(outcomes) if not outcome]
     lost_rounds_opp_hand_strengths = [stats[idx]['opp_hand_strength'] for idx, outcome in enumerate(outcomes) if not outcome]
     lost_rounds_opp_hand_strengths_rmse = [stats[idx]['opp_hand_strength_rmse'] for idx, outcome in enumerate(outcomes) if not outcome]
-
-    print(f"\nWe've earned ${stack_history[-1] - stack_history[0]} so far!")
-    print(f"Average Winnings: ${(sum(winnings)/len(winnings)) if len(winnings) else 0.0} in {len(winnings)} rounds (higher is better)")
-    print(f"Average Losses: ${(sum(losses)/len(losses)) if len(losses) else 0.0} in {len(losses)} rounds (lower is better)")
 
     if len(won_rounds_hand_strengths) > 1: # variance fn needs at least 2 data points
       average_won_hand_strength = sum(won_rounds_hand_strengths)/len(won_rounds_hand_strengths)
@@ -185,3 +198,8 @@ class PokerAgent(BasePokerPlayer):
       print("\nHand Strength Stats [Lost] (average)")
       print(f"ours: {average_lost_hand_strength} (Var: {lost_hand_strength_var}, lower is better)")
       print(f" opp: {average_opp_hand_strength} (Var: {opp_hand_strength_var}) [rmse: {average_lost_opp_hand_strength_rmse} (Var: {lost_opp_hand_strength_rmse_var})]")
+
+  def save_stats(self, filename='stats.pkl'):
+    with open(filename, 'w') as file:
+      pickle.dump(stats, file)
+  
