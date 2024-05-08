@@ -200,6 +200,6 @@ class PokerAgent(BasePokerPlayer):
       print(f" opp: {average_opp_hand_strength} (Var: {opp_hand_strength_var}) [rmse: {average_lost_opp_hand_strength_rmse} (Var: {lost_opp_hand_strength_rmse_var})]")
 
   def save_stats(self, filename='stats.pkl'):
-    with open(filename, 'w') as file:
+    with open(filename, 'wb') as file:
       pickle.dump(stats, file)
   
