@@ -20,7 +20,7 @@ config = setup_config(max_round=args.rounds, initial_stack=args.stack, small_bli
 if args.interactive:
     config.register_player(name="cli", algorithm=ConsolePlayer())
 else:
-    config.register_player(name="fish", algorithm=FishPlayer())
+    config.register_player(name="Honest", algorithm=HonestPlayer())
 
 config.register_player(name="PokerMan", algorithm=PokerAgent())
 
