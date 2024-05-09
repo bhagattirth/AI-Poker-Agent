@@ -19,6 +19,10 @@ You can use pip like this.
 ```
 pip install PyPokerEngine
 ```
+To install requirements needed to run the code- a few libaries need to be installed. These can be installed from requirements.txt
+```
+pip install -r requirements.txt
+```
 This library supports Python 2 (2.7) and Python3 (3.5).
 
 ## Create first AI
