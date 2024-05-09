@@ -19,7 +19,7 @@ stack_history = []
 
 def calculate_hand_strength(hand, river):
     # Given hand cards ('hand', 2 cards) and community cards ('river', up to 5 cards)
-    # Determine the holder's hand strength
+    # Determine the holder's hand strength, variance of handstrength, opponent's expected hand strength, and opponents variance
     all_cards = [
         'C2', 'D2', 'H2', 'S2', 'C3', 'D3', 'H3', 'S3', 
         'C4', 'D4', 'H4', 'S4', 'C5', 'D5', 'H5', 'S5', 
@@ -32,13 +32,16 @@ def calculate_hand_strength(hand, river):
 
     card_eval={}
     opp_eval={}
+
+    # From the deck, remove cards in hand and river
     for card in hand:
         all_cards.remove(card)
 
     for card in river:
         all_cards.remove(card)
 
-    if river==[]: #Computing hand values for preflop round
+    #Computing hand values for preflop round
+    if river==[]: 
         for i in range(len(all_cards)):
             for j in range(i+1,len(all_cards)):
                 for k in range(j+1,len(all_cards)):
@@ -46,32 +49,38 @@ def calculate_hand_strength(hand, river):
                     card_eval[card_value]=card_eval.get(card_value,0)+1
 
     elif len(river)==3:
+        # Modelling opponent's hand
         for i in range(len(all_cards)):
             for j in range(i+1,len(all_cards)):
                 for k in range(j+1,len(all_cards)):
                     opp_value=evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1],all_cards[j][::-1],all_cards[k][::-1])
                     opp_eval[opp_value]=opp_eval.get(opp_value,0)+1
+        # Modelling given hand
         for i in range(len(all_cards)):
             for j in range(i+1,len(all_cards)):
                 card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1],all_cards[j][::-1])
                 card_eval[card_value]=card_eval.get(card_value,0)+1
        
     elif len(river)==4:
+        # Modelling opponent's hand
         for i in range(len(all_cards)):
             for j in range(i+1,len(all_cards)):
                 for k in range(j+1,len(all_cards)):
                     opp_value=evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1],all_cards[j][::-1],all_cards[k][::-1])
                     opp_eval[opp_value]=opp_eval.get(opp_value,0)+1
+        # Modelling given hand
         for i in range(len(all_cards)):
             for j in range(i+1,len(all_cards)):
                 card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1])
                 card_eval[card_value]=card_eval.get(card_value,0)+1
     
     elif len(river)==5:
+        # Modelling opponent's hand
         for i in range(len(all_cards)):
             for j in range(i+1,len(all_cards)):
                     opp_value=evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1],all_cards[i][::-1],all_cards[j][::-1])
                     opp_eval[opp_value]=opp_eval.get(opp_value,0)+1
+        # Modelling given hand
         card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],river[4][::-1])
         card_eval[card_value]=card_eval.get(card_value,0)+1
 
