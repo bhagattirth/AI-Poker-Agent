@@ -5,6 +5,7 @@ from time import time
 from statistics import variance
 import numpy as np
 import pickle
+import csv
 
 stats = []
 
@@ -161,7 +162,14 @@ class PokerAgent(BasePokerPlayer):
 
     self.print(f"Average Winnings: ${(sum(winnings)/len(winnings)) if len(winnings) else 0.0} in {len(winnings)} rounds (higher is better)")
     self.print(f"Average Losses: ${(sum(losses)/len(losses)) if len(losses) else 0.0} in {len(losses)} rounds (lower is better)")
-  
+    with open("data.csv", "a") as file:
+      write = csv.writer(file)
+      write.writerow([sum(winnings)+sum(losses)])
+    # print(outcomes)
+    # print(winnings)
+    # print(losses)
+
+
   def report_stats(self):
     outcomes = [stat['outcome'] for stat in stats]
 
@@ -198,7 +206,7 @@ class PokerAgent(BasePokerPlayer):
       print("\nHand Strength Stats [Lost] (average)")
       print(f"ours: {average_lost_hand_strength} (Var: {lost_hand_strength_var}, lower is better)")
       print(f" opp: {average_opp_hand_strength} (Var: {opp_hand_strength_var}) [rmse: {average_lost_opp_hand_strength_rmse} (Var: {lost_opp_hand_strength_rmse_var})]")
-
+      
   def save_stats(self, filename='stats.pkl'):
     with open(filename, 'wb') as file:
       pickle.dump(stats, file)

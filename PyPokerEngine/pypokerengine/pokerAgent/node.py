@@ -32,17 +32,24 @@ def calculate_hand_strength(hand, river):
     elif len(river)==3:
         for i in range(len(all_cards)):
             for j in range(i+1,len(all_cards)):
-                opp_value=evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1],all_cards[j][::-1])
-                opp_eval[opp_value]=opp_eval.get(opp_value,0)+1
-        card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1])
-        card_eval[card_value]=card_eval.get(card_value,0)+1
+                for k in range(j+1,len(all_cards)):
+                    opp_value=evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1],all_cards[j][::-1],all_cards[k][::-1])
+                    opp_eval[opp_value]=opp_eval.get(opp_value,0)+1
+        for i in range(len(all_cards)):
+            for j in range(i+1,len(all_cards)):
+                card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],all_cards[i][::-1],all_cards[j][::-1])
+                card_eval[card_value]=card_eval.get(card_value,0)+1
+       
     elif len(river)==4:
         for i in range(len(all_cards)):
             for j in range(i+1,len(all_cards)):
-                opp_value=evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1],all_cards[j][::-1])
-                opp_eval[opp_value]=opp_eval.get(opp_value,0)+1
-        card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1])
-        card_eval[card_value]=card_eval.get(card_value,0)+1
+                for k in range(j+1,len(all_cards)):
+                    opp_value=evaluate_cards(river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1],all_cards[j][::-1],all_cards[k][::-1])
+                    opp_eval[opp_value]=opp_eval.get(opp_value,0)+1
+        for i in range(len(all_cards)):
+            for j in range(i+1,len(all_cards)):
+                card_value=evaluate_cards(hand[0][::-1],hand[1][::-1],river[0][::-1],river[1][::-1],river[2][::-1],river[3][::-1],all_cards[i][::-1])
+                card_eval[card_value]=card_eval.get(card_value,0)+1
     elif len(river)==5:
         for i in range(len(all_cards)):
             for j in range(i+1,len(all_cards)):
