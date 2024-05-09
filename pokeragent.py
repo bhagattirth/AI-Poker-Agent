@@ -9,13 +9,34 @@ import numpy as np
 from pypokerengine.players import BasePokerPlayer
 from phevaluator.evaluator import evaluate_cards
 
-stats = []
-starting_stack = 0
-raising_odds = 1
-call_odds = 1
-raise_odds = 1
-sum_val = 3
-stack_history = []
+hypers = {}
+# critical val: determines confidence levels and is expressed as overlap between possible hand values between us and them. higher is more unlikely, 0 is exact values (mean/calc)
+# betting power threshold: an exponential curve from (-inf, 1) where 0 => equal wealth, 1 => complete monopoly, -inf => bankruptcy
+# round_raise_threshold: how many raises do we want to tolerate from usual (us + their raises, cumulative in this round)
+
+hypers['zero'] = {
+    'critical_val': 2,
+    'betting_power_threshold': -inf, # ideally, we can tolerate being bankrupt if we know we will be winning this hand
+    'round_raise_threshold': inf, # ideally, we can tolerate any number of raises if we know we will be winning this hand
+}
+
+hypers['low'] = {
+    'critical_val': 0.33,
+    'betting_power_threshold': -5,
+    'round_raise_threshold': 5,
+}
+
+hypers['med'] = {
+    'critical_val': 0.25,
+    'betting_power_threshold': 0, # we should have as much money as them to risk this
+    'round_raise_threshold': 3, # Or we must not stand to lose a lot of money to risk this
+}
+
+hypers['high'] = {
+    'critical_val': 0.1,
+    'betting_power_threshold': 0.5, # only risk it if we can afford to lose
+    'round_raise_threshold': 0, # only risk it if there hasn't been a raise in this round (when we cannot afford to lose)
+}
 
 def calculate_hand_strength(hand, river):
     # Given hand cards ('hand', 2 cards) and community cards ('river', up to 5 cards)
@@ -109,35 +130,6 @@ def calculate_hand_strength(hand, river):
     return value, opp_value, std_dev, opp_std_dev
 
 def determine_victory(params, risk_level='high'):
-    hypers = {}
-    # critical val: determines confidence levels and is expressed as overlap between possible hand values between us and them. higher is more unlikely, 0 is exact values (mean/calc)
-    # betting power threshold: an exponential curve from (-inf, 1) where 0 => equal wealth, 1 => complete monopoly, -inf => bankruptcy
-    # round_raise_threshold: how many raises do we want to tolerate from usual (us + their raises, cumulative in this round)
-
-    hypers['zero'] = {
-        'critical_val': 1, # tuned from 2 to 0.5 for a relatively tight interval where the overlap between the hands' values is minimal 
-        'betting_power_threshold': -inf, # ideally, we can tolerate being bankrupt if we know we will be winning this hand
-        'round_raise_threshold': inf, # ideally, we can tolerate any number of raises if we know we will be winning this hand
-    }
-
-    hypers['low'] = {
-        'critical_val': 0.33, # tuned from 1 to 0.25 for a slightly wider confidence interval, indicating low, yet meaningful risk
-        'betting_power_threshold': -100,
-        'round_raise_threshold': 5,
-    }
-
-    hypers['med'] = {
-        'critical_val': 0.25, # tuned from 0.5 to 0.15 for a medium-level risk, creating a broader sense of the confidence interval
-        'betting_power_threshold': 0, # we should have as much money as them to risk this
-        'round_raise_threshold': 3, # Or we must not stand to lose a lot of money to risk this
-    }
-
-    hypers['high'] = {
-        'critical_val': 0.1, # tuned from 0.25 to 0.1 to signify high risk and the large range of different outcomes
-        'betting_power_threshold': 0.5, # only risk it if we can afford to lose
-        'round_raise_threshold': 0, # only risk it if there hasn't been a raise in this round (when we cannot afford to lose)
-    }
-
     p1_hand_strength_lower_bound = params['hand_info']['p1_hand_strength'] - hypers[risk_level]['critical_val'] * params['hand_info']['p1_hand_strength_rmse']
     p2_hand_strength_upper_bound = params['hand_info']['p2_hand_strength'] + hypers[risk_level]['critical_val'] * params['hand_info']['p2_hand_strength_rmse']
     return (
@@ -526,12 +518,25 @@ class Node:
 
 
 class PokerAgent(BasePokerPlayer):
-  def __init__(self, verbose=False):
+  def __init__(self, verbose=1):
     super().__init__()
     self.verbose = verbose
+
+    self.starting_stack = 0
+    self.raising_odds = 1
+    self.call_odds = 1
+    self.raise_odds = 1
+    self.sum_val = 3
+
+    self.stats = []
+    self.stack_history = []
   
-  def print(self, *args):
-    if self.verbose:
+  def vprint(self, *args):
+    if self.verbose > 1:
+      print(*args)
+
+  def vvprint(self, *args):
+    if self.verbose > 2:
       print(*args)
 
   def declare_action(self, valid_actions, hole_card, round_state):
@@ -568,27 +573,22 @@ class PokerAgent(BasePokerPlayer):
           item['paid'] if 'paid' in item else item['add_amount']
       ) for (k,v) in round_state['action_histories'].items() for item in v]               # Action History
 
-    global raising_odds
-    global call_odds
-    global raise_odds
-    global sum_val
-
     last_actions = action_history[-1]
     if last_actions[1] == 'RAISE' and last_actions[0] == 2:
-      raise_odds += 1
-      sum_val += 1
+      self.raise_odds += 1
+      self.sum_val += 1
     elif last_actions[1] == 'CALL' and last_actions[0] == 2:
-      call_odds += 1
-      sum_val += 1
+      self.call_odds += 1
+      self.sum_val += 1
     elif last_actions[1] == 'RAISE' and last_actions[0] == 1:
-      raising_odds += 1
-      sum_val += 1
+      self.raising_odds += 1
+      self.sum_val += 1
 
-    p2_dist = np.array([raising_odds/(sum_val), call_odds/(sum_val), raise_odds/(sum_val)])
+    p2_dist = np.array([self.raising_odds/(self.sum_val), self.call_odds/(self.sum_val), self.raise_odds/(self.sum_val)])
 
-    # p2_dist = np.array([raising_odds/(raising_odds + call_odds + raise_odds + 3), 
-    #            call_odds/(raising_odds + call_odds + raise_odds + 3), 
-    #            raise_odds/(raising_odds + call_odds + raise_odds + 3)])
+    # p2_dist = np.array([self.raising_odds/(self.raising_odds + self.call_odds + self.raise_odds + 3), 
+    #            self.call_odds/(self.raising_odds + self.call_odds + self.raise_odds + 3), 
+    #            self.raise_odds/(self.raising_odds + self.call_odds + self.raise_odds + 3)])
     
 
     tree = Tree(
@@ -611,10 +611,10 @@ class PokerAgent(BasePokerPlayer):
 
 
     end = time.time()
-    print("Time taken: ", end - start)
+    self.vprint("Time taken: ", end - start)
 
-    stats[-1]['time_taken'] = end - start
-    stats[-1]['decisions'].append(move["action"])
+    self.stats[-1]['time_taken'] = end - start
+    self.stats[-1]['decisions'].append(move["action"])
 
     if action == 2: # Raise
       return move["action"], move["amount"]["min"]
@@ -622,11 +622,10 @@ class PokerAgent(BasePokerPlayer):
     return move["action"], move["amount"]
 
   def receive_game_start_message(self, game_info):
-    global stack_history
-    stack_history.append(game_info['rule']['initial_stack'])
+    self.stack_history.append(game_info['rule']['initial_stack'])
 
   def receive_round_start_message(self, round_count, hole_card, seats):
-    stats.append({
+    self.stats.append({
       'time_taken': None,
       'decisions': [],
       'outcome': None,
@@ -634,25 +633,25 @@ class PokerAgent(BasePokerPlayer):
       'stack': None,
     })
 
-    print(f'\n\n-+-+-[Round {round_count}]-+-+-\n')
-    self.print("Cards in hand: ", hole_card)
+    self.vprint(f'\n\n-+-+-[Round {round_count}]-+-+-\n')
+    self.vvprint("Cards in hand: ", hole_card)
 
   def receive_street_start_message(self, street, round_state):
-    self.print(f'\n--[{street}]--')
+    self.vvprint(f'\n--[{street}]--')
 
   def receive_game_update_message(self, action, round_state):
     pass
 
   def receive_round_result_message(self, winners, hand_info, round_state):
-    stats[-1]['outcome'] = winners[0]['name'] == 'PokerMan'
-    stats[-1]['river'] = round_state['community_card']
-    stack_history.append([seat['stack'] for seat in round_state['seats'] if seat['name'] == 'PokerMan'][0])
-    stats[-1]['stack'] = stack_history[-1]
+    self.stats[-1]['outcome'] = winners[0]['name'] == 'PokerMan'
+    self.stats[-1]['river'] = round_state['community_card']
+    self.stack_history.append([seat['stack'] for seat in round_state['seats'] if seat['name'] == 'PokerMan'][0])
+    self.stats[-1]['stack'] = self.stack_history[-1]
 
-    p1_hand_str, p2_hand_str, _, p2_hand_str_rmse = calculate_hand_strength(stats[-1]['hand'], stats[-1]['river'])
-    stats[-1]['hand_strength'] = p1_hand_str
-    stats[-1]['opp_hand_strength'] = p2_hand_str
-    stats[-1]['opp_hand_strength_rmse'] = p2_hand_str_rmse
+    p1_hand_str, p2_hand_str, _, p2_hand_str_rmse = calculate_hand_strength(self.stats[-1]['hand'], self.stats[-1]['river'])
+    self.stats[-1]['hand_strength'] = p1_hand_str
+    self.stats[-1]['opp_hand_strength'] = p2_hand_str
+    self.stats[-1]['opp_hand_strength_rmse'] = p2_hand_str_rmse
 
     action_history = [(
           1 if item['uuid'] == round_state["seats"][round_state["next_player"]]['uuid'] else 2,
@@ -660,27 +659,34 @@ class PokerAgent(BasePokerPlayer):
           item['paid'] if 'paid' in item else item['add_amount'] if 'add_amount' in item else 0.0
       ) for (k,v) in round_state['action_histories'].items() for item in v]
 
-    self.print(f"\nHand strength this round\n  Ours: {stats[-1]['hand_strength']}\nTheirs: {stats[-1]['opp_hand_strength']} (rmse: {stats[-1]['opp_hand_strength_rmse']})")
-    self.print(f"\nPlay this round (player, move, amount added) => {action_history}")
-    self.print(f"\nWe've earned ${stack_history[-1] - stack_history[0]} so far!")
+    self.vvprint(f"\nHand strength this round\n  Ours: {self.stats[-1]['hand_strength']}\nTheirs: {self.stats[-1]['opp_hand_strength']} (rmse: {self.stats[-1]['opp_hand_strength_rmse']})")
+    self.vvprint(f"\nPlay this round (player, move, amount added) => {action_history}")
+    self.vvprint(f"\nWe've earned ${self.stack_history[-1] - self.stack_history[0]} so far!")
 
-    outcomes = [stat['outcome'] for stat in stats]
-    winnings = [stack_history[idx + 1] - stack_history[idx] for idx, outcome in enumerate(outcomes) if outcome]
-    losses = [stack_history[idx + 1] - stack_history[idx] for idx, outcome in enumerate(outcomes) if not outcome]
+    outcomes = [stat['outcome'] for stat in self.stats]
+    winnings = [self.stack_history[idx + 1] - self.stack_history[idx] for idx, outcome in enumerate(outcomes) if outcome]
+    losses = [self.stack_history[idx + 1] - self.stack_history[idx] for idx, outcome in enumerate(outcomes) if not outcome]
 
-    print(f"Average Winnings: ${(sum(winnings)/len(winnings)) if len(winnings) else 0.0} in {len(winnings)} rounds (higher is better)")
-    print(f"Average Losses: ${(sum(losses)/len(losses)) if len(losses) else 0.0} in {len(losses)} rounds (lower is better)")
+    self.vprint(f"Average Winnings: ${(sum(winnings)/len(winnings)) if len(winnings) else 0.0} in {len(winnings)} rounds (higher is better)")
+    self.vprint(f"Average Losses: ${(sum(losses)/len(losses)) if len(losses) else 0.0} in {len(losses)} rounds (lower is better)")
 
 
   def report_stats(self):
-    outcomes = [stat['outcome'] for stat in stats]
+    outcomes = [stat['outcome'] for stat in self.stats]
+    winnings = [self.stack_history[idx + 1] - self.stack_history[idx] for idx, outcome in enumerate(outcomes) if outcome]
+    losses = [self.stack_history[idx + 1] - self.stack_history[idx] for idx, outcome in enumerate(outcomes) if not outcome]
 
-    won_rounds_hand_strengths = [stats[idx]['hand_strength'] for idx, outcome in enumerate(outcomes) if outcome]
-    won_rounds_opp_hand_strengths = [stats[idx]['opp_hand_strength'] for idx, outcome in enumerate(outcomes) if outcome]
-    won_rounds_opp_hand_strengths_rmse = [stats[idx]['opp_hand_strength_rmse'] for idx, outcome in enumerate(outcomes) if outcome]
-    lost_rounds_hand_strengths = [stats[idx]['hand_strength'] for idx, outcome in enumerate(outcomes) if not outcome]
-    lost_rounds_opp_hand_strengths = [stats[idx]['opp_hand_strength'] for idx, outcome in enumerate(outcomes) if not outcome]
-    lost_rounds_opp_hand_strengths_rmse = [stats[idx]['opp_hand_strength_rmse'] for idx, outcome in enumerate(outcomes) if not outcome]
+    won_rounds_hand_strengths = [self.stats[idx]['hand_strength'] for idx, outcome in enumerate(outcomes) if outcome]
+    won_rounds_opp_hand_strengths = [self.stats[idx]['opp_hand_strength'] for idx, outcome in enumerate(outcomes) if outcome]
+    won_rounds_opp_hand_strengths_rmse = [self.stats[idx]['opp_hand_strength_rmse'] for idx, outcome in enumerate(outcomes) if outcome]
+    lost_rounds_hand_strengths = [self.stats[idx]['hand_strength'] for idx, outcome in enumerate(outcomes) if not outcome]
+    lost_rounds_opp_hand_strengths = [self.stats[idx]['opp_hand_strength'] for idx, outcome in enumerate(outcomes) if not outcome]
+    lost_rounds_opp_hand_strengths_rmse = [self.stats[idx]['opp_hand_strength_rmse'] for idx, outcome in enumerate(outcomes) if not outcome]
+    
+    average_won_hand_strength = 0.0
+    average_won_opp_hand_strength = 0.0
+    average_lost_hand_strength = 0.0
+    average_lost_opp_hand_strength = 0.0
 
     if len(won_rounds_hand_strengths) > 1: # variance fn needs at least 2 data points
       average_won_hand_strength = sum(won_rounds_hand_strengths)/len(won_rounds_hand_strengths)
@@ -691,24 +697,28 @@ class PokerAgent(BasePokerPlayer):
       
       average_won_opp_hand_strength_rmse = sum(won_rounds_opp_hand_strengths_rmse)/len(won_rounds_hand_strengths)
       won_opp_hand_strength_rmse_var = variance(won_rounds_opp_hand_strengths_rmse, average_won_opp_hand_strength_rmse)
-      print("\nHand Strength Stats [Won] (average)")
-      print(f"ours: {average_won_hand_strength} (Var: {won_hand_strength_var}, higher is better)")
-      print(f" opp: {average_won_opp_hand_strength} (Var: {won_opp_hand_strength_var}) [rmse: {average_won_opp_hand_strength_rmse} (Var: {won_opp_hand_strength_rmse_var})]")
+      self.vprint("\nHand Strength Stats [Won] (average)")
+      self.vprint(f"ours: {average_won_hand_strength} (Var: {won_hand_strength_var}, higher is better)")
+      self.vprint(f" opp: {average_won_opp_hand_strength} (Var: {won_opp_hand_strength_var}) [rmse: {average_won_opp_hand_strength_rmse} (Var: {won_opp_hand_strength_rmse_var})]")
 
     if len(lost_rounds_hand_strengths) > 1: # variance fn needs at least 2 data points
       average_lost_hand_strength = sum(lost_rounds_hand_strengths)/len(lost_rounds_hand_strengths)
       lost_hand_strength_var = variance(lost_rounds_hand_strengths, average_lost_hand_strength)
 
-      average_opp_hand_strength = sum(lost_rounds_opp_hand_strengths)/len(lost_rounds_hand_strengths)
-      opp_hand_strength_var = variance(lost_rounds_opp_hand_strengths, average_opp_hand_strength)
+      average_lost_opp_hand_strength = sum(lost_rounds_opp_hand_strengths)/len(lost_rounds_hand_strengths)
+      opp_hand_strength_var = variance(lost_rounds_opp_hand_strengths, average_lost_opp_hand_strength)
 
       average_lost_opp_hand_strength_rmse = sum(lost_rounds_opp_hand_strengths_rmse)/len(lost_rounds_hand_strengths)
       lost_opp_hand_strength_rmse_var = variance(lost_rounds_opp_hand_strengths_rmse, average_lost_opp_hand_strength_rmse)
 
-      print("\nHand Strength Stats [Lost] (average)")
-      print(f"ours: {average_lost_hand_strength} (Var: {lost_hand_strength_var}, lower is better)")
-      print(f" opp: {average_opp_hand_strength} (Var: {opp_hand_strength_var}) [rmse: {average_lost_opp_hand_strength_rmse} (Var: {lost_opp_hand_strength_rmse_var})]")
+      self.vprint("\nHand Strength Stats [Lost] (average)")
+      self.vprint(f"ours: {average_lost_hand_strength} (Var: {lost_hand_strength_var}, lower is better)")
+      self.vprint(f" opp: {average_lost_opp_hand_strength} (Var: {opp_hand_strength_var}) [rmse: {average_lost_opp_hand_strength_rmse} (Var: {lost_opp_hand_strength_rmse_var})]")
+
+    with open('results.csv', 'a') as file:
+        file.write(f"{hypers['zero']['critical_val']},{hypers['low']['critical_val']},{hypers['med']['critical_val']},{hypers['high']['critical_val']},{(sum(winnings)/len(winnings)) if len(winnings) else 0.0},{len(winnings)},{average_won_hand_strength},{average_won_opp_hand_strength},{(sum(losses)/len(losses)) if len(losses) else 0.0},{len(losses)},{average_lost_hand_strength},{average_lost_opp_hand_strength}\n")
+
       
   def save_stats(self, filename='stats.pkl'):
     with open(filename, 'wb') as file:
-      pickle.dump(stats, file)
+      pickle.dump(self.stats, file)
