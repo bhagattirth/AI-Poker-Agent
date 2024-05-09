@@ -1,4 +1,0 @@
-pypokerengine
-tornado
-click
-pyyaml

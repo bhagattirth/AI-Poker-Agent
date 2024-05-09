@@ -2,7 +2,7 @@ from pypokerengine.api.game import setup_config, start_poker
 from examples.players.fish_player import FishPlayer
 from examples.players.honest_player import HonestPlayer
 from examples.players.console_player import ConsolePlayer
-from pypokerengine.pokeragent import PokerAgent
+from pokeragent import PokerAgent
 # from PyPokerEngine.examples.players.fish_player import FishPlayer
 import argparse
 
@@ -16,7 +16,6 @@ args = parser.parse_args()
 
 #TODO:config the config as our wish
 config = setup_config(max_round=args.rounds, initial_stack=args.stack, small_blind_amount=10)
-
 
 pokerman = PokerAgent(verbose=args.verbose)
 
