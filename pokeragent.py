@@ -138,6 +138,7 @@ def calculate_hand_strength(hand, river):
     if len(opp_eval)>0:opp_std_dev=opp_std_dev/sum(opp_eval.values())
     return value, opp_value, std_dev, opp_std_dev
 
+
 def determine_victory(params, risk_level='high'):
     p1_hand_strength_lower_bound = params['hand_info']['p1_hand_strength'] - hypers[risk_level]['critical_val'] * params['hand_info']['p1_hand_strength_rmse']
     p2_hand_strength_upper_bound = params['hand_info']['p2_hand_strength'] + hypers[risk_level]['critical_val'] * params['hand_info']['p2_hand_strength_rmse']
@@ -149,9 +150,10 @@ def determine_victory(params, risk_level='high'):
             )
     )
 
+
 class Tree:
     def __init__(self, position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history, raise_count=0, p2_dist=[1,1,1]):
-        self.round = round                      
+        self.round = round    # Current Round                  
 
         p1_hand_strength, p2_hand_strength, p1_hand_strength_rmse, p2_hand_strength_rmse = calculate_hand_strength(hand, river) # Note: hand will always be our (player 1's) cards
         self.root = Node(
@@ -196,7 +198,7 @@ class Tree:
         return: returns the utility of the move
         """
         is_preflop = self.round == 1
-        # print(state.weight)
+
         if state.is_leaf_node():    # If the state is a terminal node return the utility of the state
             return state.get_utility(is_preflop=is_preflop)
 
@@ -207,12 +209,12 @@ class Tree:
 
         utils = [nState.weight * self.get_move_utility(nState, level+1) for _, nState in actions] # Recursively get the utility of future moves
 
-        if state.owner == 1:
+        if state.owner == 1: # Choose move that maximizes utility
             return max(utils)
         elif state.owner == 2:
-            return sum(utils)/len(utils)
+            return sum(utils)/len(utils) # Get the expectation of the utility of the move for player 2
         else:
-            return sum(utils)/len(utils)
+            return sum(utils)/len(utils) # Get the expectation of the utility of the move for nature
 
 
 class Node:
@@ -241,6 +243,7 @@ class Node:
         self.dist = p2_dist                     # Probability distribution of player 2's actions
         self.weight = weight                    # Weight of the node
 
+
     def get_actions(self, is_preflop=False) -> list:
         """
         get_actions returns the possible actions the player can take
@@ -260,12 +263,14 @@ class Node:
 
         return None
 
+
     def is_leaf_node(self) -> bool:
         """
         is_leaf_node returns if the current node is a leaf node
         return: returns a boolean value
         """
         return self.is_leaf
+
 
 
     def get_utility(self, is_preflop=False) -> float:
@@ -318,6 +323,7 @@ class Node:
         # In all other cases, we expect to gain negative utility
         return lose_amount
 
+
     def calculate_bluff_probability(self):
         """
         calculate_bluff_probability returns the probability of the opponent bluffing throughout the game
@@ -330,6 +336,7 @@ class Node:
             opp_bluff_prob += 0.1
         return opp_bluff_prob
 
+
     def action_helper_player(self, next, money):
         """
         action_helper_player returns valid states for the player
@@ -338,7 +345,7 @@ class Node:
         return: returns a list of states from valid actions
         """
         moves = [] # List of valid states
-        missing_index = [1, 2]
+        missing_index = [1, 2] # Index of the actions that are not available
         # Fold State
         moves.append((0, Node(
             position=self.position,
@@ -362,6 +369,7 @@ class Node:
 
         # Call State
         if  money >= self.call_amount:
+            # update who goes next after the current player
             if self.raise_count > 0:
                 next = 3
                 if self.position == 0 and self.owner == 1:
@@ -375,7 +383,7 @@ class Node:
             else:
                 next_position = self.position
 
-            next_round = self.round + 1 if next == 3 else self.round
+            next_round = self.round + 1 if next == 3 else self.round #Checks if we transition to the next round
             is_k = self.k <= self.curr_level + 1 or next_round == 5  # Check if the depth limit is reached or the game is over 
 
             # Update the money of the player after calling
@@ -439,7 +447,9 @@ class Node:
             )))
             missing_index.remove(2)
         
+        # Applies the probability distribution of the opponent's actions
         if self.owner == 2:
+            # Update action distribution if a move is not available
             if len(missing_index) != 0:
                 change_distibution = self.dist.copy()
                 unavailable = change_distibution[missing_index].sum()
@@ -451,6 +461,7 @@ class Node:
                 state[1].weight = self.dist[state[0]]
 
         return moves
+
 
     def action_helper_nature(self, next):
         """
@@ -571,7 +582,7 @@ class PokerAgent(BasePokerPlayer):
     raise_amount = 10 if call_amount == 0 else 20                                         # Raise Amount
     raise_count = 0
 
-    for item in round_state['action_histories'][street]:
+    for item in round_state['action_histories'][street]:                                 # Count the number of raises
       if item['action'] == 'RAISE':
         raise_count += 1
 
@@ -582,6 +593,7 @@ class PokerAgent(BasePokerPlayer):
           item['paid'] if 'paid' in item else item['add_amount']
       ) for (k,v) in round_state['action_histories'].items() for item in v]               # Action History
 
+    # Update the odds of the opponent's actions based on previous move
     last_actions = action_history[-1]
     if last_actions[1] == 'RAISE' and last_actions[0] == 2:
       self.raise_odds += 1
@@ -595,10 +607,6 @@ class PokerAgent(BasePokerPlayer):
 
     p2_dist = np.array([self.raising_odds/(self.sum_val), self.call_odds/(self.sum_val), self.raise_odds/(self.sum_val)])
 
-    # p2_dist = np.array([self.raising_odds/(self.raising_odds + self.call_odds + self.raise_odds + 3), 
-    #            self.call_odds/(self.raising_odds + self.call_odds + self.raise_odds + 3), 
-    #            self.raise_odds/(self.raising_odds + self.call_odds + self.raise_odds + 3)])
-    
 
     tree = Tree(
       position=position,
