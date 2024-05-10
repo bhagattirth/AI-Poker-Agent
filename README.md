@@ -1,5 +1,3 @@
-## Term Project
-
 ### Set up environment
 using the conda or pyenv
 
