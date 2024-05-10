@@ -12,6 +12,7 @@ pip install PyPokerEngine
 https://ishikota.github.io/PyPokerEngine/
 
 pip install numpy
+pip install -r requirements.txt
 
 ### Files
 
@@ -33,7 +34,8 @@ This class is used to represent a player in pypokerEngine. The most important fu
 
 ### Tree
 
-The Tree picks an action that will maximize the players utility by analysing a game tree. Tree is defined by 'Tree(position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history, raise_count, p2_dist)', where 'position' is binary which who goes first in a street, 'hand' is the current hand of the agent, 'call_amount' and 'raise_amount' is the call and raise amounts, 'p1Money' and 'p2Money' are the agents's  and opposing player's stack, 'pot' the current pot size, 'round' the current street, 'k' the depth limit, 'action_history' the past actions of the agent and opposing player in the game, 'raise_count' the number of raises in the street, and 'p2_dist' which represents the seen opposing player move distribution over a series of games. Using this information as well as player1 and player2 hand strengths using the 'calculate_Hand_Strength()' , it creates Node which represents the current state (the root). 
+The Tree picks an action that will maximize the players utility by analysing a game tree. Tree is defined by 'Tree(position, hand, river, call_amount, raise_amount, p1Money, p2Money, pot, round, k, action_history, raise_count, p2_dist)', where 'position' is binary which who goes first in a street, 'hand' is the current hand of the agent, 'call_amount' and 'raise_amount' is the call and raise amounts, 'p1Money' and 'p2Money' are the agents's  and opposing player's stack, 'pot' the current pot size, 'round' the current street, 'k' the depth limit, 'action_history' the past actions of the agent and opposing player in the game, 'raise_count' the number of raises in the street, and 'p2_dist' which represents the seen opposing player move distribution over a series of games. Using this information as well as player1 and player2 hand strengths from 'calculate_Hand_Strength()' , it creates Node which represents the current state (the root). 
+'calculate_Hand_Strength()' takes the input of cards present in the Hand and the River, and iterates through the remaining future cards. It calls the function evaluate_cards from the library phevaluator. With the distribution obtained from evaluate_cards, expected hand strength and standard deviation are returned. Similar to PokerMan's card modelling, opponent cards are also modelled, and opponent expected hand strength and standard deviation are also returned. 
 
 The Tree class has two functions: 'pick_Action' and 'get_utility'.
 
