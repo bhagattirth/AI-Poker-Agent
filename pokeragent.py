@@ -212,7 +212,7 @@ class Tree:
         if state.owner == 1: # Choose move that maximizes utility
             return max(utils)
         elif state.owner == 2:
-            return sum(utils)/len(utils) # Get the expectation of the utility of the move for player 2
+            return min(utils)
         else:
             return sum(utils)/len(utils) # Get the expectation of the utility of the move for nature
 
@@ -688,7 +688,7 @@ class PokerAgent(BasePokerPlayer):
     self.vprint(f"Average Losses: ${(sum(losses)/len(losses)) if len(losses) else 0.0} in {len(losses)} rounds (lower is better)")
 
 
-  def report_stats(self):
+  def report_stats(self, filename='results.csv'):
     outcomes = [stat['outcome'] for stat in self.stats]
     winnings = [self.stack_history[idx + 1] - self.stack_history[idx] for idx, outcome in enumerate(outcomes) if outcome]
     losses = [self.stack_history[idx + 1] - self.stack_history[idx] for idx, outcome in enumerate(outcomes) if not outcome]
@@ -732,8 +732,14 @@ class PokerAgent(BasePokerPlayer):
       self.vprint(f"ours: {average_lost_hand_strength} (Var: {lost_hand_strength_var}, lower is better)")
       self.vprint(f" opp: {average_lost_opp_hand_strength} (Var: {opp_hand_strength_var}) [rmse: {average_lost_opp_hand_strength_rmse} (Var: {lost_opp_hand_strength_rmse_var})]")
 
-    with open('results.csv', 'a') as file:
+    with open(filename, 'a') as file:
         file.write(f"{hypers['zero']['critical_val']},{hypers['low']['critical_val']},{hypers['med']['critical_val']},{hypers['high']['critical_val']},{(sum(winnings)/len(winnings)) if len(winnings) else 0.0},{len(winnings)},{average_won_hand_strength},{average_won_opp_hand_strength},{(sum(losses)/len(losses)) if len(losses) else 0.0},{len(losses)},{average_lost_hand_strength},{average_lost_opp_hand_strength}\n")
+    
+    with open(f"stack_{filename}", 'a') as file:
+        file.write(f"{self.stack_history[0]}")
+        for item in self.stack_history[1:]:
+            file.write(f",{item}")
+        file.write("\n")
 
       
   def save_stats(self, filename='stats.pkl'):
