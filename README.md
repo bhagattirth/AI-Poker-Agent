@@ -16,17 +16,17 @@ pip install -r requirements.txt
 
 ### Files
 
-The required files for the application are run.py and pokeragent.py.
+The required files for the application are run.py and Group6Player.py.
 
-For this application, run.py is the entry point. From here, you can select the number of rounds, the starting stack, the small blind amount, and the competing poker agents. You may run the application through the terminal using the format `python run.py --rounds ROUNDS_INT --stack STACK_INT --i BOOLEAN (CLI player or not)` or may run `python run.py`. Selecting the pokerAgent() in run.py will use a pokerAgent using `pokeragent.py`.
-
-
-`pokeragent.py` uses the pypokerEngine library to create a poker agent that can be played against other agents.
+For this application, run.py is the entry point. From here, you can select the number of rounds, the starting stack, the small blind amount, and the competing poker agents. You may run the application through the terminal using the format `python run.py --rounds ROUNDS_INT --stack STACK_INT --i BOOLEAN (CLI player or not)` or may run `python run.py`. Selecting the Group6Player() in run.py will use a Group6Player using `Group6Player.py`.
 
 
-### pokeragent.py File Structure
+`Group6Player.py` uses the pypokerEngine library to create a poker agent that can be played against other agents.
 
-`pokeragent.py` has 3 classes: BasePokerPlayer, Tree, and Node.
+
+### Group6Player.py File Structure
+
+`Group6Player.py` has 3 classes: BasePokerPlayer, Tree, and Node.
 
 #### BasePokerPlayer
 
