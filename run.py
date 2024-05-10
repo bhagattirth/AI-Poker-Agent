@@ -4,7 +4,7 @@ from examples.players.honest_player import HonestPlayer
 from examples.players.console_player import ConsolePlayer
 from examples.players.random_player import RandomPlayer
 from examples.players.fold_man import FoldMan
-from pokeragent import PokerAgent
+from Group6Player import Group6Player
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -21,7 +21,7 @@ for match in range(args.matches):
     if args.opp == 'cli':
         config.register_player(name="cli", algorithm=ConsolePlayer())
     elif args.opp == 'clone':
-        config.register_player(name="Clone", algorithm=PokerAgent(verbose=0))
+        config.register_player(name="Clone", algorithm=Group6Player(verbose=0))
     elif args.opp == 'fish':
         config.register_player(name="Fish", algorithm=FishPlayer())
     elif args.opp == 'random':
@@ -31,7 +31,7 @@ for match in range(args.matches):
     else:
         config.register_player(name="Honest", algorithm=HonestPlayer())
 
-    pokerman = PokerAgent(verbose=2 if args.verbose else 1)
+    pokerman = Group6Player(verbose=2 if args.verbose else 1)
     config.register_player(name="PokerMan", algorithm=pokerman)
 
     game_result = start_poker(config, verbose=1)

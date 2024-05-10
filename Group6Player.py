@@ -252,9 +252,9 @@ class Node:
         if self.is_leaf: # There are no actions at a termimal node
             return None
 
-        if self.owner == 1 and self.position == 0:              # If the pokeragent plays first
+        if self.owner == 1 and self.position == 0:              # If the Group6Player plays first
             return self.action_helper_player(2, self.p1_money)
-        elif self.owner == 1 and self.position == 1:            # If the pokeragent plays second
+        elif self.owner == 1 and self.position == 1:            # If the Group6Player plays second
             return self.action_helper_player(3, self.p1_money)
         elif self.owner == 2 and self.position == 0:            # If the opponent plays first
             return self.action_helper_player(3, self.p2_money)
@@ -537,7 +537,7 @@ class Node:
         return moves
 
 
-class PokerAgent(BasePokerPlayer):
+class Group6Player(BasePokerPlayer):
   def __init__(self, verbose=1):
     super().__init__()
     self.verbose = verbose
@@ -575,7 +575,7 @@ class PokerAgent(BasePokerPlayer):
     community_card = round_state["community_card"]                                        # River Cards
     p1_info = round_state["seats"][round_state["next_player"]]
     p2_info = round_state["seats"][1 if round_state["next_player"] == 0 else 0]
-    p1_money = p1_info["stack"]                                                           # PokerAgent Money
+    p1_money = p1_info["stack"]                                                           # Group6Player Money
     p2_money = p2_info["stack"]                                                           # Opponent Money
     pot = round_state["pot"]["main"]["amount"]                                            # Pot Amount
     call_amount = 0 if valid_actions[1]["amount"] == 0 else 10                            # Call Amount
