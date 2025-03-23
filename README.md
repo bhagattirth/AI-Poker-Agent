@@ -1,3 +1,18 @@
+## Introduction
+This is the final project for CS687- Artificial Intelligence by Prof. Yair Zick, for Spring 2024.
+The process of creating a poker agent, "PokerMan," that plays optimally against its opponent in
+Limit Texas Hold’em required researching ideas of how existing poker agents play and implement
+abstraction, modeling the game tree’s states and actions, and developing fine-tuned heuristics that
+aim to make the poker agent win and quickly bankrupt the opponent by predicting the comparison in
+potential hand strengths and risk levels given the amount of money each player has. The methods used
+to account for these goals include a game tree search using the Expectiminmax algorithm because
+poker is a partial information game and abstraction to create a sense of knowing some information,
+such as the "PokerMan’s" expected hand strength and its opponent’s potential hand strength. Some
+key results that were shown as there were main rounds of experimenting and testing included how
+PokerMan had a win rate of 84.18% against the honest player, and when playing against itself
+(self-play), it had a win rate of 49.53%. The file AI_Final_Project__1.pdf contains more details on 
+the design of the Agent
+
 ### Set up environment
 using the conda or pyenv
 
